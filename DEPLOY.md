@@ -36,7 +36,13 @@ uden at din PC er tændt. Alt kører på gratis niveauer uden kreditkort.
 
 ---
 
-## Trin 2 — Deploy via Render Blueprint
+## Trin 2 — Deploy på Render
+
+> **Er GitHub-login blokeret (fx AU-konto)?** Så brug **"Public Git Repository"**-metoden i afsnit
+> 2B nedenfor (kræver at repoet er offentligt). Virker GitHub-login, kan du bruge det hurtigere
+> Blueprint i 2A.
+
+### 2A — Via Render Blueprint (kræver GitHub/GitLab-forbindelse)
 
 Repoet indeholder allerede en `render.yaml`, så Render opretter **både** API og frontend i ét hug.
 
@@ -50,6 +56,36 @@ Repoet indeholder allerede en `render.yaml`, så Render opretter **både** API o
 4. Klik **Apply**. Render bygger nu begge services (Docker-build af API'et tager et par minutter
    første gang). API'et kører `Database.Migrate()` + seed ved opstart, så tabeller og startdata
    oprettes automatisk i Neon.
+
+### 2B — Via "Public Git Repository" (uden GitHub-login)
+
+Forudsætning: repoet er **offentligt**. Opret Render-konto med **email** (ikke GitHub).
+Opret de to services manuelt. **Lav backenden først.**
+
+**Backend (Web Service):**
+1. **New +** → **Web Service** → vælg **"Public Git Repository"**.
+2. Indsæt URL: `https://github.com/PeterRebsdorfAU/IndkobApp` → Continue.
+3. Indstil:
+   - **Name:** `indkobapp-api`
+   - **Branch:** `cloud-deploy`
+   - **Region:** Frankfurt · **Instance Type:** Free
+   - **Language/Runtime:** Docker (Render finder `Dockerfile` i roden automatisk)
+4. **Environment Variables** → tilføj `ConnectionStrings__Default` = din Neon .NET-connection string.
+5. **Create Web Service** → vent på build → test `…/api/categories`.
+
+**Frontend (Static Site):**
+1. **New +** → **Static Site** → **"Public Git Repository"** → samme URL.
+2. Indstil:
+   - **Name:** `indkobapp-web` · **Branch:** `cloud-deploy`
+   - **Root Directory:** `frontend/indkobs-app`
+   - **Build Command:** `npm ci && npm run build`
+   - **Publish Directory:** `dist/indkobs-app/browser`
+3. **Create Static Site.**
+4. Under **Settings → Redirects/Rewrites** tilføj: Source `/*`, Destination `/index.html`, Action **Rewrite**
+   (så Angular-router virker ved refresh/dybe links).
+
+> Bemærk: med offentlig-URL-metoden genudruller Render ikke nødvendigvis automatisk ved `git push`
+> — brug "Manual Deploy → Deploy latest commit" i dashboardet efter ændringer.
 
 ---
 
