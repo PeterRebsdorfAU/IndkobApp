@@ -1,0 +1,16 @@
+# --- .NET / backend ---
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# --- Node / Angular frontend ---
+node_modules/
+frontend/indkobs-app/dist/
+frontend/indkobs-app/.angular/
+
+# --- Editor / OS ---
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

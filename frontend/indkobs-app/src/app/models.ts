@@ -1,0 +1,75 @@
+// Domæne-modeller der matcher backendens DTO'er.
+
+// Enhedsnavne SKAL matche C#-enum'en Unit (serialiseres som tekst).
+export type Unit =
+  | 'Stk' | 'G' | 'Kg' | 'Ml' | 'L'
+  | 'Spsk' | 'Tsk' | 'Daase' | 'Pakke' | 'Knivspids' | 'Bundt' | 'Fed';
+
+// Visningslabels (fx "Dåse" i stedet for enum-navnet "Daase").
+export const UNITS: { value: Unit; label: string }[] = [
+  { value: 'Stk', label: 'stk' },
+  { value: 'G', label: 'g' },
+  { value: 'Kg', label: 'kg' },
+  { value: 'Ml', label: 'ml' },
+  { value: 'L', label: 'l' },
+  { value: 'Spsk', label: 'spsk' },
+  { value: 'Tsk', label: 'tsk' },
+  { value: 'Daase', label: 'dåse' },
+  { value: 'Pakke', label: 'pakke' },
+  { value: 'Knivspids', label: 'knivspids' },
+  { value: 'Bundt', label: 'bundt' },
+  { value: 'Fed', label: 'fed' },
+];
+
+export function unitLabel(u: Unit): string {
+  return UNITS.find(x => x.value === u)?.label ?? u;
+}
+
+export interface Category { id: number; name: string; sortOrder: number; }
+
+export interface Ingredient { id: number; name: string; categoryId: number | null; categoryName: string | null; }
+
+export interface IngredientLine {
+  id: number; ingredientId: number; ingredientName: string;
+  categoryName: string | null; quantity: number; unit: Unit;
+}
+export interface IngredientLineInput {
+  ingredientId?: number | null; ingredientName: string; quantity: number; unit: Unit;
+}
+
+export interface Recipe {
+  id: number; name: string; note: string | null; servings: number; ingredients: IngredientLine[];
+}
+export interface RecipeUpsert {
+  name: string; note: string | null; servings: number; ingredients: IngredientLineInput[];
+}
+
+export interface ItemGroup { id: number; name: string; ingredients: IngredientLine[]; }
+export interface ItemGroupUpsert { name: string; ingredients: IngredientLineInput[]; }
+
+export interface Week { id: number; year: number; weekNumber: number; }
+
+export interface WeekRecipe {
+  id: number; recipeId: number; recipeName: string;
+  baseServings: number; servings: number | null; dayOfWeek: number | null;
+}
+export interface WeekItemGroup { id: number; itemGroupId: number; itemGroupName: string; }
+export interface WeekManualItem { id: number; ingredientId: number | null; name: string; quantity: number; unit: Unit; }
+
+export interface WeekDetail {
+  id: number; year: number; weekNumber: number;
+  recipes: WeekRecipe[]; itemGroups: WeekItemGroup[]; manualItems: WeekManualItem[];
+}
+
+export interface ShoppingLine {
+  lineKey: string; ingredientId: number | null; name: string;
+  quantity: number; unit: Unit; isChecked: boolean; isManual: boolean; sources: string[];
+}
+export interface ShoppingCategoryGroup {
+  categoryId: number | null; categoryName: string; sortOrder: number; lines: ShoppingLine[];
+}
+export interface ShoppingList {
+  weekId: number; year: number; weekNumber: number; groups: ShoppingCategoryGroup[];
+}
+
+export const DAYS = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
