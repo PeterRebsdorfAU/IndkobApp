@@ -11,21 +11,26 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 
 builder.Services.AddOpenApi();
 
-// EF Core mod SQL Server (.\SQLEXPRESS, Windows Auth – se appsettings.json).
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+// EF Core mod PostgreSQL. Connection string kommer fra konfiguration:
+// lokalt fra appsettings.json, i skyen fra env-var ConnectionStrings__Default (Render/Neon).
+var connectionString = builder.Configuration.GetConnectionString("Default");
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<ShoppingListService>();
 
-// CORS: tillad frontenden uanset om den åbnes via localhost (PC) eller PC'ens
-// LAN-IP (telefon på samme WiFi). Privat app uden login/credentials, så vi
-// tillader enhver oprindelse. Ved cloud-udrulning bør dette låses til din faste URL.
+// CORS: tillad de oprindelser der er angivet i konfiguration (Cors:AllowedOrigins),
+// fx den udrullede frontend-URL. Er intet angivet (lokal udvikling), tillades alt,
+// så appen virker både via localhost og PC'ens LAN-IP (telefon på samme WiFi).
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 const string CorsPolicy = "frontend";
 builder.Services.AddCors(o => o.AddPolicy(CorsPolicy, p =>
-    p.SetIsOriginAllowed(_ => true)
-     .AllowAnyHeader()
-     .AllowAnyMethod()));
+{
+    if (allowedOrigins is { Length: > 0 })
+        p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+    else
+        p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
+}));
 
 var app = builder.Build();
 

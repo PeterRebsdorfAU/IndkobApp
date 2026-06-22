@@ -1,0 +1,10 @@
+# Hold Docker-build-konteksten lille og hurtig
+.git
+frontend
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+.vs
+.idea

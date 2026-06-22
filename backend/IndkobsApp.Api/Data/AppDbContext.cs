@@ -51,7 +51,7 @@ public class AppDbContext : DbContext
 
         b.Entity<RecipeIngredient>(e =>
         {
-            e.Property(x => x.Quantity).HasColumnType("decimal(10,3)");
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
             e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
             e.HasOne(x => x.Recipe)
                 .WithMany(r => r.Ingredients)
@@ -70,7 +70,7 @@ public class AppDbContext : DbContext
 
         b.Entity<ItemGroupIngredient>(e =>
         {
-            e.Property(x => x.Quantity).HasColumnType("decimal(10,3)");
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
             e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
             e.HasOne(x => x.ItemGroup)
                 .WithMany(g => g.Ingredients)
@@ -115,7 +115,7 @@ public class AppDbContext : DbContext
         b.Entity<WeekManualItem>(e =>
         {
             e.Property(x => x.FreeText).HasMaxLength(150);
-            e.Property(x => x.Quantity).HasColumnType("decimal(10,3)");
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
             e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
             e.HasOne(x => x.Week)
                 .WithMany(w => w.ManualItems)

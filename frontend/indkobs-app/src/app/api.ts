@@ -5,13 +5,14 @@ import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit
 } from './models';
+import { environment } from '../environments/environment';
 
-// Backend-base-URL. Vi bruger SAMME værtsnavn/IP som frontenden blev hentet fra,
-// så appen virker både på PC (localhost) og på telefonen (PC'ens LAN-IP) uden ændringer.
-// Backend forventes at lytte på port 5298 på samme maskine.
-// (Ved en rigtig cloud-udrulning sættes denne til API'ets faste URL i stedet.)
+// Backend-base-URL:
+//  - I produktion (Render) bruges environment.apiBase (den faste backend-URL).
+//  - Lokalt (apiBase = '') bruges SAMME vært som frontenden hentes fra, så appen
+//    virker både på PC (localhost) og telefon (PC'ens LAN-IP) på port 5298.
 const API_PORT = 5298;
-const API = `${location.protocol}//${location.hostname}:${API_PORT}/api`;
+const API = environment.apiBase || `${location.protocol}//${location.hostname}:${API_PORT}/api`;
 
 @Injectable({ providedIn: 'root' })
 export class Api {

@@ -5,8 +5,12 @@ og få automatisk **én samlet, kategori-sorteret indkøbsliste** hvor overlappe
 
 - **Frontend:** Angular 20 (standalone components, signals), mobil-først og responsiv.
 - **Backend:** ASP.NET Core 10 Web API (C#, REST).
-- **Database:** Microsoft SQL Server (Express), EF Core 10 **code-first migrations**.
+- **Database:** PostgreSQL, EF Core 10 **code-first migrations** (Npgsql). *(Oprindeligt SQL Server;
+  skiftet til PostgreSQL for gratis cloud-hosting — se [DEPLOY.md](DEPLOY.md).)*
 - **Én bruger, intet login.**
+
+> **Vil du i skyen?** Hele udrulningen (gratis, uden kreditkort) er beskrevet i **[DEPLOY.md](DEPLOY.md)**.
+> Resten af denne fil handler om at køre lokalt.
 
 ---
 
@@ -21,7 +25,7 @@ Allerede verificeret på denne maskine:
 | Node.js | 24.x |
 | npm | 11.x |
 | Angular CLI | 20.3.x |
-| SQL Server | 2022 Express, instans `.\SQLEXPRESS` (Windows Auth) |
+| PostgreSQL | En database, lokal eller i skyen (fx Neon) |
 
 Hvis `dotnet ef` mangler: `dotnet tool install --global dotnet-ef`.
 
@@ -29,32 +33,35 @@ Hvis `dotnet ef` mangler: `dotnet tool install --global dotnet-ef`.
 
 ## 2. Database & connection string
 
-Standard-connection string ligger i [`backend/IndkobsApp.Api/appsettings.json`](backend/IndkobsApp.Api/appsettings.json):
+Connection string'en læses fra konfiguration. Standard ligger i
+[`backend/IndkobsApp.Api/appsettings.json`](backend/IndkobsApp.Api/appsettings.json) og peger på en
+**lokal PostgreSQL** (placeholder, ingen hemmeligheder):
 
 ```json
 "ConnectionStrings": {
-  "Default": "Server=.\\SQLEXPRESS;Database=IndkobsApp;Integrated Security=True;TrustServerCertificate=True"
+  "Default": "Host=localhost;Port=5432;Database=indkobsapp;Username=postgres;Password=postgres"
 }
 ```
 
-Den bruger **Windows Authentication** mod `.\SQLEXPRESS` — virker uden brugernavn/password,
-præcis som når du logger ind i SSMS.
+**Databasen oprettes automatisk:** når backenden starter, kører den `Database.Migrate()` (opretter
+tabeller fra migrations) og lægger lidt seed-data ind, hvis databasen er tom.
 
-**Databasen oprettes automatisk:** når backenden starter, kører den `Database.Migrate()` og
-opretter databasen `IndkobsApp` fra migrations, hvis den ikke findes, og lægger lidt seed-data ind.
+### Vælg din lokale database — to nemme muligheder
+- **A) Brug din cloud-database (Neon) også lokalt** *(enklest — ingen lokal installation)*:
+  overskriv connection string'en med din Neon-streng via en miljøvariabel, så intet ændres i git:
+  ```powershell
+  $env:ConnectionStrings__Default = "Host=...neon.tech;Database=neondb;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true"
+  cd backend\IndkobsApp.Api; dotnet run
+  ```
+- **B) Kør PostgreSQL lokalt** (fx via installer fra postgresql.org eller Docker) og brug
+  standard-strengen ovenfor.
 
-### Se databasen i SSMS
-1. Åbn SQL Server Management Studio.
-2. **Server name:** `.\SQLEXPRESS` — **Authentication:** *Windows Authentication* → Connect.
-3. Udvid **Databases → IndkobsApp → Tables**. Du ser bl.a. `Recipes`, `Ingredients`,
-   `Categories`, `Weeks`, `ShoppingListChecks` m.fl.
+> Hemmeligheder (rigtige adgangskoder) hører **ikke** hjemme i `appsettings.json` i git — brug en
+> miljøvariabel som ovenfor eller `dotnet user-secrets`.
 
-### Vil du hellere bruge SQL-login (brugernavn/password)?
-Mixed Mode er slået til på din instans. Skift connection string til fx:
-```json
-"Default": "Server=.\\SQLEXPRESS;Database=IndkobsApp;User Id=DIT_LOGIN;Password=DIT_PASSWORD;TrustServerCertificate=True"
-```
-(opret evt. loginnet i SSMS under *Security → Logins* og giv det `db_owner` på `IndkobsApp`).
+### Se data i databasen
+PostgreSQL ses ikke i SSMS. Brug i stedet **Neons web-konsol** (cloud), eller **pgAdmin** /
+**DBeaver** mod din connection string (lokal eller Neon).
 
 ---
 
