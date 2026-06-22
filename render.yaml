@@ -1,0 +1,38 @@
+# Render Blueprint: opretter både backend-API (Docker) og frontend (statisk side)
+# i ét klik. Databasen ligger separat på Neon (sættes som hemmelig env-var nedenfor).
+#
+# Brug: Render Dashboard -> New -> Blueprint -> peg på dette repo.
+# Bagefter indsættes Neon-connection string under ConnectionStrings__Default.
+
+services:
+  # ---------- Backend-API (.NET 10, Docker) ----------
+  - type: web
+    name: indkobapp-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/categories
+    envVars:
+      # Neon PostgreSQL connection string (.NET/Npgsql-format). Hemmelig -> sættes i dashboardet.
+      - key: ConnectionStrings__Default
+        sync: false
+
+  # ---------- Frontend (Angular PWA, statisk) ----------
+  - type: web
+    name: indkobapp-web
+    runtime: static
+    plan: free
+    rootDir: frontend/indkobs-app
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist/indkobs-app/browser
+    # SPA-fallback: alle ruter serveres af index.html (Angular router håndterer resten)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
