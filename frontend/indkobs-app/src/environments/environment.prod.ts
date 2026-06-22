@@ -3,5 +3,5 @@
 // (Render viser den efter første deploy, fx https://indkobapp-api.onrender.com).
 export const environment = {
   production: true,
-  apiBase: 'https://indkobapp-api.onrender.com/api'
+  apiBase: 'https://indkobapp.onrender.com/api'
 };
