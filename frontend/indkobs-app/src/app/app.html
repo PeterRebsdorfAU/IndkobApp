@@ -1,11 +1,22 @@
+@if (auth.isLoggedIn()) {
+  <header class="topbar">
+    <span class="brand">🛒 Madplan</span>
+    <span class="grow"></span>
+    @if (auth.householdName()) { <span class="muted">{{ auth.householdName() }}</span> }
+    <button class="small" (click)="auth.logout()">Log ud</button>
+  </header>
+}
+
 <main class="app-main">
   <router-outlet />
 </main>
 
-<nav class="bottom-nav">
-  <a routerLink="/uge" routerLinkActive="active"><span class="ic">📅</span>Uge</a>
-  <a routerLink="/indkob" routerLinkActive="active"><span class="ic">🛒</span>Indkøb</a>
-  <a routerLink="/retter" routerLinkActive="active"><span class="ic">🍽️</span>Retter</a>
-  <a routerLink="/varegrupper" routerLinkActive="active"><span class="ic">📦</span>Grupper</a>
-  <a routerLink="/admin" routerLinkActive="active"><span class="ic">⚙️</span>Admin</a>
-</nav>
+@if (auth.isLoggedIn()) {
+  <nav class="bottom-nav">
+    <a routerLink="/uge" routerLinkActive="active"><span class="ic">📅</span>Uge</a>
+    <a routerLink="/indkob" routerLinkActive="active"><span class="ic">🛒</span>Indkøb</a>
+    <a routerLink="/retter" routerLinkActive="active"><span class="ic">🍽️</span>Retter</a>
+    <a routerLink="/varegrupper" routerLinkActive="active"><span class="ic">📦</span>Grupper</a>
+    <a routerLink="/admin" routerLinkActive="active"><span class="ic">⚙️</span>Admin</a>
+  </nav>
+}

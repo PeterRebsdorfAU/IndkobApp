@@ -73,3 +73,5 @@ export interface ShoppingList {
 }
 
 export const DAYS = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
+
+export interface AuthResult { token: string; expiresUtc: string; householdId: number; householdName: string; }
