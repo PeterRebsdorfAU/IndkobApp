@@ -14,9 +14,9 @@ import { Auth } from '../auth';
 
         <form (ngSubmit)="submit()">
           <div class="field">
-            <label>Email</label>
-            <input type="email" autocomplete="username" [(ngModel)]="email" name="email"
-                   placeholder="fx demo@husstand.dk" />
+            <label>Brugernavn</label>
+            <input type="text" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
+                   placeholder="fx ClaraPeter" />
           </div>
           <div class="field">
             <label>Adgangskode</label>
