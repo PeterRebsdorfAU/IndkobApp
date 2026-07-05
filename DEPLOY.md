@@ -70,8 +70,11 @@ Opret de to services manuelt. **Lav backenden først.**
    - **Branch:** `cloud-deploy`
    - **Region:** Frankfurt · **Instance Type:** Free
    - **Language/Runtime:** Docker (Render finder `Dockerfile` i roden automatisk)
-4. **Environment Variables** → tilføj `ConnectionStrings__Default` = din Neon .NET-connection string.
-5. **Create Web Service** → vent på build → test `…/api/categories`.
+4. **Environment Variables** → tilføj tre:
+   - `ConnectionStrings__Default` = din Neon .NET-connection string
+   - `Jwt__Key` = en lang tilfældig streng (mindst 32 tegn) — brug Renders **"Generate"**-knap
+   - `Admin__Key` = en tilfældig streng (brug **"Generate"**) — den bruger du til at oprette husstande
+5. **Create Web Service** → vent på build → test `…/api/auth/login` (se afsnittet **Login og husstande** nedenfor).
 
 **Frontend (Static Site):**
 1. **New +** → **Static Site** → **"Public Git Repository"** → samme URL.
@@ -121,6 +124,43 @@ Test API'et direkte i browseren: `https://indkobapp-api.onrender.com/api/categor
    data kræver dog forbindelse til API'et).
 
 ---
+
+## Opdatér et eksisterende deploy (login blev tilføjet senere)
+
+Har du allerede deployet én gang (før login), så gør følgende for at få login-versionen op:
+
+**Backend (`indkobapp`):**
+1. Render → API-servicen → **Environment** → tilføj to variabler (brug **"Generate"**):
+   - `Jwt__Key` (mindst 32 tegn) · `Admin__Key`
+2. **Manual Deploy → Deploy latest commit** (henter `cloud-deploy` med auth-koden).
+   Ved opstart migreres databasen og en **demo-husstand** oprettes automatisk.
+
+**Frontend (`indkobapp-web`):**
+1. **Settings → Redirects/Rewrites** → tilføj: Source `/*`, Destination `/index.html`, Action **Rewrite**.
+   *(Det løser "Not Found" på telefonen: uden reglen giver dybe stier/opdatering 404 — og appen sender nu til `/login`.)*
+2. **Manual Deploy → Deploy latest commit** (bygger login-versionen).
+
+## Login og husstande
+
+Appen kræver nu login. Hver **husstand** har ét fælles login (email + adgangskode) og sine egne
+data. Kun du kan oprette husstande — via en beskyttet admin-nøgle (`Admin__Key`).
+
+**Demo-login** (oprettes automatisk ved første start):
+- Email: `demo@husstand.dk` · Adgangskode: `Skift1234!`
+- Skift adgangskoden ved at oprette din egen husstand og slette demo (se nedenfor).
+
+**Opret en ny husstand** (kør fra din PC; hent `Admin__Key`-værdien i Render-dashboardet under
+API-servicens *Environment*):
+```powershell
+$api = "https://indkobapp.onrender.com"
+$key = "DIN_ADMIN_KEY_FRA_RENDER"
+$body = '{"name":"Familie Hansen","email":"hansen@eksempel.dk","password":"EtGodtKodeord"}'
+Invoke-RestMethod -Method Post -Uri "$api/api/admin/households" -Headers @{ "X-Admin-Key" = $key } -ContentType "application/json" -Body $body
+```
+- **Liste husstande:** `Invoke-RestMethod "$api/api/admin/households" -Headers @{ "X-Admin-Key" = $key }`
+- **Slet en husstand** (fjerner også dens data): `Invoke-RestMethod -Method Delete "$api/api/admin/households/2" -Headers @{ "X-Admin-Key" = $key }`
+
+Del så email + adgangskode med den pågældende husstand — de logger ind i appen på forsiden.
 
 ## Se data i databasen
 I stedet for SSMS bruger du **Neons web-konsol**: åbn dit projekt på neon.com → **SQL Editor**

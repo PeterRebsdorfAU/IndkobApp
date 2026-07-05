@@ -1,7 +1,12 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using IndkobsApp.Api.Data;
+using IndkobsApp.Api.Models;
 using IndkobsApp.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,9 +24,30 @@ builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionStrin
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<ShoppingListService>();
 
+// Auth: password-hashing + JWT-udstedelse/validering.
+builder.Services.AddSingleton<IPasswordHasher<Household>, PasswordHasher<Household>>();
+builder.Services.AddScoped<TokenService>();
+
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "";
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:Key mangler eller er for kort (mindst 32 tegn). Sæt env-var Jwt__Key i produktion.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+builder.Services.AddAuthorization();
+
 // CORS: tillad de oprindelser der er angivet i konfiguration (Cors:AllowedOrigins),
-// fx den udrullede frontend-URL. Er intet angivet (lokal udvikling), tillades alt,
-// så appen virker både via localhost og PC'ens LAN-IP (telefon på samme WiFi).
+// fx den udrullede frontend-URL. Er intet angivet (lokal udvikling), tillades alt.
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 const string CorsPolicy = "frontend";
 builder.Services.AddCors(o => o.AddPolicy(CorsPolicy, p =>
@@ -38,8 +64,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<Household>>();
+    var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     await db.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(db);
+    await DbSeeder.SeedAsync(db, hasher, cfg);
 }
 
 if (app.Environment.IsDevelopment())
@@ -48,6 +76,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(CorsPolicy);
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();

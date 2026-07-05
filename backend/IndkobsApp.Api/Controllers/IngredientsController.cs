@@ -2,6 +2,7 @@ using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Dtos;
 using IndkobsApp.Api.Models;
 using IndkobsApp.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/ingredients")]
+[Authorize] // fælles opslagsdata, men kun for indloggede
 public class IngredientsController : ControllerBase
 {
     private readonly AppDbContext _db;

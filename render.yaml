@@ -18,6 +18,13 @@ services:
       # Neon PostgreSQL connection string (.NET/Npgsql-format). Hemmelig -> sættes i dashboardet.
       - key: ConnectionStrings__Default
         sync: false
+      # JWT-signeringsnøgle. Render genererer en stærk tilfældig værdi automatisk.
+      - key: Jwt__Key
+        generateValue: true
+      # Admin-nøgle til at oprette/slette husstande (header X-Admin-Key). Render genererer den;
+      # find værdien i Render-dashboardet når du skal oprette en husstand.
+      - key: Admin__Key
+        generateValue: true
 
   # ---------- Frontend (Angular PWA, statisk) ----------
   - type: web

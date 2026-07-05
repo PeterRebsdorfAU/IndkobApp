@@ -1,5 +1,21 @@
 namespace IndkobsApp.Api.Models;
 
+/// <summary>
+/// En husstand = én konto med ét delt login. Alle opskrifter, varegrupper og uger
+/// tilhører en husstand, så husstande ikke kan se hinandens data.
+/// </summary>
+public class Household
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Login (unikt, gemmes normaliseret i lowercase).</summary>
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+
+    public static string NormalizeEmail(string email) => (email ?? string.Empty).Trim().ToLowerInvariant();
+}
+
 /// <summary>Butikskategori brugt til at gruppere/sortere indkøbslisten.</summary>
 public class Category
 {
@@ -30,6 +46,7 @@ public class Ingredient
 public class Recipe
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; } // ejer-husstand
     public string Name { get; set; } = string.Empty;
     public string? Note { get; set; }
     public int Servings { get; set; } = 4; // basis-portioner
@@ -54,6 +71,7 @@ public class RecipeIngredient
 public class ItemGroup
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; } // ejer-husstand
     public string Name { get; set; } = string.Empty;
 
     public List<ItemGroupIngredient> Ingredients { get; set; } = new();
@@ -76,6 +94,7 @@ public class ItemGroupIngredient
 public class Week
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; } // ejer-husstand
     public int Year { get; set; }
     public int WeekNumber { get; set; }
 
