@@ -125,6 +125,21 @@ Test API'et direkte i browseren: `https://indkobapp-api.onrender.com/api/categor
 
 ---
 
+## Opdatér et eksisterende deploy (login blev tilføjet senere)
+
+Har du allerede deployet én gang (før login), så gør følgende for at få login-versionen op:
+
+**Backend (`indkobapp`):**
+1. Render → API-servicen → **Environment** → tilføj to variabler (brug **"Generate"**):
+   - `Jwt__Key` (mindst 32 tegn) · `Admin__Key`
+2. **Manual Deploy → Deploy latest commit** (henter `cloud-deploy` med auth-koden).
+   Ved opstart migreres databasen og en **demo-husstand** oprettes automatisk.
+
+**Frontend (`indkobapp-web`):**
+1. **Settings → Redirects/Rewrites** → tilføj: Source `/*`, Destination `/index.html`, Action **Rewrite**.
+   *(Det løser "Not Found" på telefonen: uden reglen giver dybe stier/opdatering 404 — og appen sender nu til `/login`.)*
+2. **Manual Deploy → Deploy latest commit** (bygger login-versionen).
+
 ## Login og husstande
 
 Appen kræver nu login. Hver **husstand** har ét fælles login (email + adgangskode) og sine egne
