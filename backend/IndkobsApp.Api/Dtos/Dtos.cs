@@ -57,3 +57,10 @@ public record ShoppingCategoryGroupDto(int? CategoryId, string CategoryName, int
 public record ShoppingListDto(int WeekId, int Year, int WeekNumber, List<ShoppingCategoryGroupDto> Groups);
 
 public record CheckLineDto(string LineKey, bool IsChecked);
+
+// ---------- Auth / husstande ----------
+public record LoginDto(string Email, string Password);
+public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, string HouseholdName);
+public record MeDto(int HouseholdId, string HouseholdName, string Email);
+public record CreateHouseholdDto(string Name, string Email, string Password);
+public record HouseholdDto(int Id, string Name, string Email);

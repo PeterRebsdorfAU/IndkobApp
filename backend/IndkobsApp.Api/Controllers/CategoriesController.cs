@@ -1,6 +1,7 @@
 using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Dtos;
 using IndkobsApp.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/categories")]
+[Authorize] // fælles opslagsdata, men kun for indloggede
 public class CategoriesController : ControllerBase
 {
     private readonly AppDbContext _db;

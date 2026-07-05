@@ -2,6 +2,7 @@ using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Dtos;
 using IndkobsApp.Api.Models;
 using IndkobsApp.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/weeks")]
+[Authorize] // kræver login; alle uger scopes til den aktuelle husstand
 public class WeeksController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -22,10 +24,18 @@ public class WeeksController : ControllerBase
         _shoppingList = shoppingList;
     }
 
+    // Er ugen ejet af den aktuelle husstand?
+    private Task<bool> OwnsWeek(int weekId) =>
+        _db.Weeks.AnyAsync(w => w.Id == weekId && w.HouseholdId == User.GetHouseholdId());
+
     [HttpGet]
-    public async Task<IEnumerable<WeekDto>> GetAll() =>
-        await _db.Weeks.OrderByDescending(w => w.Year).ThenByDescending(w => w.WeekNumber)
+    public async Task<IEnumerable<WeekDto>> GetAll()
+    {
+        var hid = User.GetHouseholdId();
+        return await _db.Weeks.Where(w => w.HouseholdId == hid)
+            .OrderByDescending(w => w.Year).ThenByDescending(w => w.WeekNumber)
             .Select(w => new WeekDto(w.Id, w.Year, w.WeekNumber)).ToListAsync();
+    }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<WeekDetailDto>> Get(int id)
@@ -37,11 +47,13 @@ public class WeeksController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<WeekDto>> Create(WeekCreateDto dto)
     {
-        // Returnér eksisterende uge hvis (år, ugenr) allerede findes, så vi ikke fejler på unik-index.
-        var existing = await _db.Weeks.FirstOrDefaultAsync(w => w.Year == dto.Year && w.WeekNumber == dto.WeekNumber);
+        var hid = User.GetHouseholdId();
+        // Returnér eksisterende uge hvis (husstand, år, ugenr) allerede findes.
+        var existing = await _db.Weeks.FirstOrDefaultAsync(w =>
+            w.HouseholdId == hid && w.Year == dto.Year && w.WeekNumber == dto.WeekNumber);
         if (existing != null) return Ok(new WeekDto(existing.Id, existing.Year, existing.WeekNumber));
 
-        var w = new Week { Year = dto.Year, WeekNumber = dto.WeekNumber };
+        var w = new Week { HouseholdId = hid, Year = dto.Year, WeekNumber = dto.WeekNumber };
         _db.Weeks.Add(w);
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(Get), new { id = w.Id }, new WeekDto(w.Id, w.Year, w.WeekNumber));
@@ -50,7 +62,8 @@ public class WeeksController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var w = await _db.Weeks.FindAsync(id);
+        var hid = User.GetHouseholdId();
+        var w = await _db.Weeks.FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (w == null) return NotFound();
         _db.Weeks.Remove(w);
         await _db.SaveChangesAsync();
@@ -61,8 +74,11 @@ public class WeeksController : ControllerBase
     [HttpPost("{id:int}/recipes")]
     public async Task<ActionResult<WeekDetailDto>> AddRecipe(int id, AddWeekRecipeDto dto)
     {
-        if (!await _db.Weeks.AnyAsync(w => w.Id == id)) return NotFound();
-        if (!await _db.Recipes.AnyAsync(r => r.Id == dto.RecipeId)) return BadRequest("Ukendt ret.");
+        var hid = User.GetHouseholdId();
+        if (!await OwnsWeek(id)) return NotFound();
+        // Man kan kun tilføje egne retter.
+        if (!await _db.Recipes.AnyAsync(r => r.Id == dto.RecipeId && r.HouseholdId == hid))
+            return BadRequest("Ukendt ret.");
 
         _db.WeekRecipes.Add(new WeekRecipe
         {
@@ -78,6 +94,7 @@ public class WeeksController : ControllerBase
     [HttpPut("{id:int}/recipes/{weekRecipeId:int}")]
     public async Task<ActionResult<WeekDetailDto>> UpdateRecipe(int id, int weekRecipeId, UpdateWeekRecipeDto dto)
     {
+        if (!await OwnsWeek(id)) return NotFound();
         var wr = await _db.WeekRecipes.FirstOrDefaultAsync(x => x.Id == weekRecipeId && x.WeekId == id);
         if (wr == null) return NotFound();
         wr.Servings = dto.Servings;
@@ -89,6 +106,7 @@ public class WeeksController : ControllerBase
     [HttpDelete("{id:int}/recipes/{weekRecipeId:int}")]
     public async Task<ActionResult<WeekDetailDto>> RemoveRecipe(int id, int weekRecipeId)
     {
+        if (!await OwnsWeek(id)) return NotFound();
         var wr = await _db.WeekRecipes.FirstOrDefaultAsync(x => x.Id == weekRecipeId && x.WeekId == id);
         if (wr == null) return NotFound();
         _db.WeekRecipes.Remove(wr);
@@ -100,8 +118,10 @@ public class WeeksController : ControllerBase
     [HttpPost("{id:int}/item-groups")]
     public async Task<ActionResult<WeekDetailDto>> AddItemGroup(int id, AddWeekItemGroupDto dto)
     {
-        if (!await _db.Weeks.AnyAsync(w => w.Id == id)) return NotFound();
-        if (!await _db.ItemGroups.AnyAsync(g => g.Id == dto.ItemGroupId)) return BadRequest("Ukendt varegruppe.");
+        var hid = User.GetHouseholdId();
+        if (!await OwnsWeek(id)) return NotFound();
+        if (!await _db.ItemGroups.AnyAsync(g => g.Id == dto.ItemGroupId && g.HouseholdId == hid))
+            return BadRequest("Ukendt varegruppe.");
 
         _db.WeekItemGroups.Add(new WeekItemGroup { WeekId = id, ItemGroupId = dto.ItemGroupId });
         await _db.SaveChangesAsync();
@@ -111,6 +131,7 @@ public class WeeksController : ControllerBase
     [HttpDelete("{id:int}/item-groups/{weekItemGroupId:int}")]
     public async Task<ActionResult<WeekDetailDto>> RemoveItemGroup(int id, int weekItemGroupId)
     {
+        if (!await OwnsWeek(id)) return NotFound();
         var wg = await _db.WeekItemGroups.FirstOrDefaultAsync(x => x.Id == weekItemGroupId && x.WeekId == id);
         if (wg == null) return NotFound();
         _db.WeekItemGroups.Remove(wg);
@@ -122,7 +143,7 @@ public class WeeksController : ControllerBase
     [HttpPost("{id:int}/manual-items")]
     public async Task<ActionResult<WeekDetailDto>> AddManualItem(int id, AddWeekManualItemDto dto)
     {
-        if (!await _db.Weeks.AnyAsync(w => w.Id == id)) return NotFound();
+        if (!await OwnsWeek(id)) return NotFound();
 
         int? ingredientId = dto.IngredientId;
         string? freeText = dto.FreeText?.Trim();
@@ -132,7 +153,7 @@ public class WeeksController : ControllerBase
         if (ingredientId == null && !string.IsNullOrWhiteSpace(freeText))
         {
             var ing = await _ingredients.GetOrCreateAsync(freeText);
-            await _db.SaveChangesAsync(); // sikrer Id
+            await _db.SaveChangesAsync();
             ingredientId = ing.Id;
             freeText = null;
         }
@@ -155,6 +176,7 @@ public class WeeksController : ControllerBase
     [HttpDelete("{id:int}/manual-items/{manualItemId:int}")]
     public async Task<ActionResult<WeekDetailDto>> RemoveManualItem(int id, int manualItemId)
     {
+        if (!await OwnsWeek(id)) return NotFound();
         var m = await _db.WeekManualItems.FirstOrDefaultAsync(x => x.Id == manualItemId && x.WeekId == id);
         if (m == null) return NotFound();
         _db.WeekManualItems.Remove(m);
@@ -166,6 +188,7 @@ public class WeeksController : ControllerBase
     [HttpGet("{id:int}/shopping-list")]
     public async Task<ActionResult<ShoppingListDto>> GetShoppingList(int id)
     {
+        if (!await OwnsWeek(id)) return NotFound();
         var list = await _shoppingList.BuildAsync(id);
         return list == null ? NotFound() : list;
     }
@@ -173,7 +196,7 @@ public class WeeksController : ControllerBase
     [HttpPut("{id:int}/shopping-list/check")]
     public async Task<IActionResult> SetCheck(int id, CheckLineDto dto)
     {
-        if (!await _db.Weeks.AnyAsync(w => w.Id == id)) return NotFound();
+        if (!await OwnsWeek(id)) return NotFound();
 
         var check = await _db.ShoppingListChecks
             .FirstOrDefaultAsync(c => c.WeekId == id && c.LineKey == dto.LineKey);
@@ -193,11 +216,12 @@ public class WeeksController : ControllerBase
     // ---------- Hjælper ----------
     private async Task<WeekDetailDto?> BuildDetail(int id)
     {
+        var hid = User.GetHouseholdId();
         var w = await _db.Weeks
             .Include(x => x.Recipes).ThenInclude(wr => wr.Recipe)
             .Include(x => x.ItemGroups).ThenInclude(wg => wg.ItemGroup)
             .Include(x => x.ManualItems).ThenInclude(m => m.Ingredient)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (w == null) return null;
 
         return new WeekDetailDto(

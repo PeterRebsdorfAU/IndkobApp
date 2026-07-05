@@ -2,6 +2,7 @@ using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Dtos;
 using IndkobsApp.Api.Models;
 using IndkobsApp.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/recipes")]
+[Authorize] // kræver login; alle handlinger scopes til den aktuelle husstand
 public class RecipesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -22,7 +24,9 @@ public class RecipesController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<RecipeDto>> GetAll()
     {
+        var hid = User.GetHouseholdId();
         var recipes = await _db.Recipes
+            .Where(r => r.HouseholdId == hid)
             .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
             .OrderBy(r => r.Name)
             .ToListAsync();
@@ -32,16 +36,23 @@ public class RecipesController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<RecipeDto>> Get(int id)
     {
+        var hid = User.GetHouseholdId();
         var r = await _db.Recipes
             .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
         return r == null ? NotFound() : Map(r);
     }
 
     [HttpPost]
     public async Task<ActionResult<RecipeDto>> Create(RecipeUpsertDto dto)
     {
-        var r = new Recipe { Name = dto.Name.Trim(), Note = dto.Note, Servings = dto.Servings };
+        var r = new Recipe
+        {
+            HouseholdId = User.GetHouseholdId(),
+            Name = dto.Name.Trim(),
+            Note = dto.Note,
+            Servings = dto.Servings
+        };
         await ApplyLines(r, dto.Ingredients);
         _db.Recipes.Add(r);
         await _db.SaveChangesAsync();
@@ -51,7 +62,9 @@ public class RecipesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<RecipeDto>> Update(int id, RecipeUpsertDto dto)
     {
-        var r = await _db.Recipes.Include(x => x.Ingredients).FirstOrDefaultAsync(x => x.Id == id);
+        var hid = User.GetHouseholdId();
+        var r = await _db.Recipes.Include(x => x.Ingredients)
+            .FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (r == null) return NotFound();
 
         r.Name = dto.Name.Trim();
@@ -70,7 +83,8 @@ public class RecipesController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var r = await _db.Recipes.FindAsync(id);
+        var hid = User.GetHouseholdId();
+        var r = await _db.Recipes.FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (r == null) return NotFound();
         _db.Recipes.Remove(r);
         await _db.SaveChangesAsync();

@@ -7,6 +7,7 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    public DbSet<Household> Households => Set<Household>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
@@ -24,6 +25,14 @@ public class AppDbContext : DbContext
         // Gem Unit-enum som læsbar tekst i alle tabeller (pænt i SSMS).
         var unitConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion
             .EnumToStringConverter<Unit>();
+
+        b.Entity<Household>(e =>
+        {
+            e.Property(x => x.Name).IsRequired().HasMaxLength(150);
+            e.Property(x => x.Email).IsRequired().HasMaxLength(200);
+            e.Property(x => x.PasswordHash).IsRequired();
+            e.HasIndex(x => x.Email).IsUnique(); // ét login pr. email
+        });
 
         b.Entity<Category>(e =>
         {
@@ -47,6 +56,8 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
             e.Property(x => x.Note).HasMaxLength(1000);
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.HouseholdId);
         });
 
         b.Entity<RecipeIngredient>(e =>
@@ -66,6 +77,8 @@ public class AppDbContext : DbContext
         b.Entity<ItemGroup>(e =>
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.HouseholdId);
         });
 
         b.Entity<ItemGroupIngredient>(e =>
@@ -84,8 +97,9 @@ public class AppDbContext : DbContext
 
         b.Entity<Week>(e =>
         {
-            // Én plan pr. (år, ugenummer).
-            e.HasIndex(x => new { x.Year, x.WeekNumber }).IsUnique();
+            // Én plan pr. (husstand, år, ugenummer) — så to husstande kan have samme uge.
+            e.HasIndex(x => new { x.HouseholdId, x.Year, x.WeekNumber }).IsUnique();
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<WeekRecipe>(e =>

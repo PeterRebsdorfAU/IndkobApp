@@ -2,6 +2,7 @@ using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Dtos;
 using IndkobsApp.Api.Models;
 using IndkobsApp.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/item-groups")]
+[Authorize] // kræver login; scopes til den aktuelle husstand
 public class ItemGroupsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -22,7 +24,9 @@ public class ItemGroupsController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<ItemGroupDto>> GetAll()
     {
+        var hid = User.GetHouseholdId();
         var groups = await _db.ItemGroups
+            .Where(g => g.HouseholdId == hid)
             .Include(g => g.Ingredients).ThenInclude(gi => gi.Ingredient).ThenInclude(i => i.Category)
             .OrderBy(g => g.Name)
             .ToListAsync();
@@ -32,16 +36,17 @@ public class ItemGroupsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ItemGroupDto>> Get(int id)
     {
+        var hid = User.GetHouseholdId();
         var g = await _db.ItemGroups
             .Include(g => g.Ingredients).ThenInclude(gi => gi.Ingredient).ThenInclude(i => i.Category)
-            .FirstOrDefaultAsync(g => g.Id == id);
+            .FirstOrDefaultAsync(g => g.Id == id && g.HouseholdId == hid);
         return g == null ? NotFound() : Map(g);
     }
 
     [HttpPost]
     public async Task<ActionResult<ItemGroupDto>> Create(ItemGroupUpsertDto dto)
     {
-        var g = new ItemGroup { Name = dto.Name.Trim() };
+        var g = new ItemGroup { HouseholdId = User.GetHouseholdId(), Name = dto.Name.Trim() };
         await ApplyLines(g, dto.Ingredients);
         _db.ItemGroups.Add(g);
         await _db.SaveChangesAsync();
@@ -51,7 +56,9 @@ public class ItemGroupsController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ItemGroupDto>> Update(int id, ItemGroupUpsertDto dto)
     {
-        var g = await _db.ItemGroups.Include(x => x.Ingredients).FirstOrDefaultAsync(x => x.Id == id);
+        var hid = User.GetHouseholdId();
+        var g = await _db.ItemGroups.Include(x => x.Ingredients)
+            .FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (g == null) return NotFound();
 
         g.Name = dto.Name.Trim();
@@ -66,7 +73,8 @@ public class ItemGroupsController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var g = await _db.ItemGroups.FindAsync(id);
+        var hid = User.GetHouseholdId();
+        var g = await _db.ItemGroups.FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
         if (g == null) return NotFound();
         _db.ItemGroups.Remove(g);
         await _db.SaveChangesAsync();
