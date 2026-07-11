@@ -89,8 +89,3 @@ public record ShareTokenDto(string Token);
 
 // ---------- Lager-kredsløb ----------
 public record StockCheckedResultDto(int LinesStocked);
-
-// ---------- Tilbud (Tilbudsdata.dk) ----------
-public record OffersStatusDto(bool Configured);
-public record OfferDto(string Heading, string? Description, decimal? Price, string? Store, string? ValidUntil);
-public record OfferMatchDto(string ItemName, List<OfferDto> Offers);

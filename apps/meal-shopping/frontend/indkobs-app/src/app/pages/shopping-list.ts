@@ -15,7 +15,6 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel } from '
       <div class="spread">
         <div class="muted">Uge {{ l.weekNumber }}, {{ l.year }}</div>
         <div class="row">
-          <a routerLink="/tilbud"><button class="small">💰 Tilbud</button></a>
           <button class="small" (click)="share()">🔗 Del liste</button>
           <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
         </div>

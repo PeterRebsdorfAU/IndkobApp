@@ -133,7 +133,6 @@ GET/POST/PUT/DELETE /api/pantry[/{id}]    # køkkenlager (husstands-scoped; POST
 POST /api/weeks/{id}/recipes/{wrId}/cooked   # "Lavet": træk ingredienser (skaleret) fra lageret (409 hvis allerede)
 DELETE /api/weeks/{id}/recipes/{wrId}/cooked # fortryd markering (lageret føres IKKE tilbage)
 POST /api/weeks/{id}/shopping-list/stock-checked # læg afkrydsede varer på lageret (idempotent via afstemning)
-GET  /api/offers/status|search?q=|match/{weekId} # tilbud (Tilbudsdata.dk; 503 hvis nøgle ikke konfigureret)
 POST/DELETE /api/weeks/{id}/share         # opret/tilbagekald delings-token
 GET  /api/share/{token}                   # ANONYM: hent delt liste
 PUT  /api/share/{token}/check             # ANONYM: kryds af på delt liste
@@ -146,9 +145,6 @@ Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyr
 - `ConnectionStrings__Default` — Neon (.NET/Npgsql-format). **Hemmelig.**
 - `Jwt__Key` — JWT-signeringsnøgle (≥32 tegn). **Hemmelig.**
 - `Admin__Key` — nøgle til admin-endpoints. **Hemmelig.**
-- `Tilbudsdata__UserId` / `Tilbudsdata__ApiKey` — VALGFRI: aktiverer Tilbud-siden
-  (rekvireres hos support@effectmanager.com til api.tilbudsdata.dk). Uden dem melder
-  `/api/offers/status` configured=false, og siden viser en vejledning.
 - `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
   Repoet er offentligt, så prod-nøglerne må aldrig committes.
 

@@ -100,11 +100,3 @@ export interface ShareToken { token: string; }
 
 // ---------- Lager-kredsløb ----------
 export interface StockCheckedResult { linesStocked: number; }
-
-// ---------- Tilbud ----------
-export interface OffersStatus { configured: boolean; }
-export interface Offer {
-  heading: string; description: string | null; price: number | null;
-  store: string | null; validUntil: string | null;
-}
-export interface OfferMatch { itemName: string; offers: Offer[]; }

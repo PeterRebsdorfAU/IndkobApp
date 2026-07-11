@@ -4,8 +4,7 @@ import { Observable } from 'rxjs';
 import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
-  CatalogRecipe, AdoptResult, PantryItem, ShareToken,
-  StockCheckedResult, OffersStatus, Offer, OfferMatch
+  CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -87,11 +86,6 @@ export class Api {
   stockChecked(weekId: number) {
     return this.http.post<StockCheckedResult>(`${API}/weeks/${weekId}/shopping-list/stock-checked`, {});
   }
-
-  // ----- Tilbud -----
-  getOffersStatus() { return this.http.get<OffersStatus>(`${API}/offers/status`); }
-  searchOffers(q: string) { return this.http.get<Offer[]>(`${API}/offers/search`, { params: { q } }); }
-  matchOffers(weekId: number) { return this.http.get<OfferMatch[]>(`${API}/offers/match/${weekId}`); }
 
   // ----- Inspiration / katalog -----
   getCatalog(): Observable<CatalogRecipe[]> { return this.http.get<CatalogRecipe[]>(`${API}/catalog/recipes`); }
