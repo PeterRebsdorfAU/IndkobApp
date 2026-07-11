@@ -68,6 +68,7 @@ using (var scope = app.Services.CreateScope())
     var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(db, hasher, cfg);
+    await DbSeeder.SeedCatalogAsync(db); // inspirations-katalog (kører også på eksisterende DB)
 }
 
 if (app.Environment.IsDevelopment())

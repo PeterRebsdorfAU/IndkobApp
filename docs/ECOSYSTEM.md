@@ -74,12 +74,17 @@ flowchart TD
 | System | Rolle | Status | Placering |
 |---|---|---|---|
 | **Madplan & Indkøb** | Retter, ugeplan, aggregeret indkøbsliste | ✅ I drift | `apps/meal-shopping/` · indkobapp-web.onrender.com |
-| **Inspiration / Opskrifts-katalog** | Bladr i mange opskrifter → vælg → auto-tilføj til liste + egne opskrifter | 🟡 Planlagt | `apps/meal-shopping/` (feature) + evt. `shared/recipe-catalog/` |
-| **Køkkenlager (Pantry)** | Hvad har husstanden hjemme lige nu | 🟡 Planlagt | `apps/pantry/` |
-| **Indkøbs-delegering (Shopper)** | Send/deleger listen; en anden handler | 🟡 Planlagt | `apps/shopper/` |
+| **Inspiration / Opskrifts-katalog** | Bladr i opskrifter → "Tilføj" → egne opskrifter + uge/liste | ✅ Bygget (modul i meal-shopping) | `apps/meal-shopping/` (Retter → ✨ Inspiration) |
+| **Køkkenlager (Pantry)** | Hvad har husstanden hjemme; listen viser kun det der mangler | ✅ Bygget (modul i meal-shopping; kan udskilles senere) | `apps/meal-shopping/` (Lager-fanen) |
+| **Indkøbs-delegering (Shopper)** | Del listen via link uden login; modtager krydser af | ✅ Bygget, let udgave (modul i meal-shopping) | `apps/meal-shopping/` (`/del/<token>`) |
 | **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | 🔵 Foreslået | `apps/price-optimizer/` |
 | **Vare-katalog** | Kanonisk vare-identitet + SKU/stregkode-mapping | 🔵 Foreslået (fælles) | `shared/product-catalog/` |
 | **Identitet & Husstand** | Fælles login/husstand på tværs | 🔵 Foreslået (udskilles fra Madplan) | `shared/` el. `apps/identity/` |
+
+> **Pragmatisk beslutning (jul 2026):** Inspiration, Køkkenlager og Shopper-let er bygget som
+> *afgrænsede moduler i meal-shopping-appen* (egne tabeller/controllers/sider) frem for separate
+> services — værdien nu, uden ekstra hosting/cold starts. Udskilning til egne services (jf. §4.2/§4.4)
+> er stadig den langsigtede retning, og modulerne er skåret så det kan lade sig gøre.
 
 ---
 

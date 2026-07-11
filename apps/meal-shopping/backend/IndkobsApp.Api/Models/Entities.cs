@@ -163,3 +163,61 @@ public class ShoppingListCheck
     public string LineKey { get; set; } = string.Empty;
     public bool IsChecked { get; set; }
 }
+
+/// <summary>
+/// Inspirations-opskrift i det fælles katalog (IKKE husstands-scoped).
+/// Ingredienser gemmes som navne (ikke Ingredient-FK), så kataloget ikke
+/// forurener master-ingredienslisten — mapping sker først ved "adoption".
+/// </summary>
+public class CatalogRecipe
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Note { get; set; }
+    public int Servings { get; set; } = 4;
+    /// <summary>Komma-separerede tags til filtrering (fx "hurtig,vegetar").</summary>
+    public string? Tags { get; set; }
+
+    public List<CatalogRecipeIngredient> Ingredients { get; set; } = new();
+}
+
+public class CatalogRecipeIngredient
+{
+    public int Id { get; set; }
+    public int CatalogRecipeId { get; set; }
+    public CatalogRecipe CatalogRecipe { get; set; } = null!;
+
+    public string Name { get; set; } = string.Empty; // ingrediens-navn (mappes ved adoption)
+    public decimal Quantity { get; set; }
+    public Unit Unit { get; set; }
+}
+
+/// <summary>
+/// En vare husstanden har hjemme (køkkenlager). Bruges til at trække "haves"
+/// fra indkøbslisten, så man kun køber det man mangler.
+/// </summary>
+public class PantryItem
+{
+    public int Id { get; set; }
+    public int HouseholdId { get; set; }
+
+    public int IngredientId { get; set; }
+    public Ingredient Ingredient { get; set; } = null!;
+
+    public decimal Quantity { get; set; }
+    public Unit Unit { get; set; }
+}
+
+/// <summary>
+/// Delings-token for en uges indkøbsliste: giver læse-/afkrydsningsadgang
+/// via link UDEN login (fx til den der handler).
+/// </summary>
+public class WeekShareToken
+{
+    public int Id { get; set; }
+    public int WeekId { get; set; }
+    public Week Week { get; set; } = null!;
+
+    public string Token { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+}

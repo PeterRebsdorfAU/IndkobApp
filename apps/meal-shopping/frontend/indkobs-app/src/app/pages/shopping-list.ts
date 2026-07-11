@@ -14,8 +14,22 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel } from '
     @if (list(); as l) {
       <div class="spread">
         <div class="muted">Uge {{ l.weekNumber }}, {{ l.year }}</div>
-        <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
+        <div class="row">
+          <button class="small" (click)="share()">🔗 Del liste</button>
+          <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
+        </div>
       </div>
+
+      @if (shareUrl()) {
+        <div class="card" style="border-color:var(--primary)">
+          <div class="muted">Delings-link ({{ shareCopied() ? 'kopieret ✅' : 'send til den der handler' }}):</div>
+          <div style="word-break:break-all; font-size:.85rem; margin:.3rem 0">{{ shareUrl() }}</div>
+          <div class="row">
+            <button class="small" (click)="copyShare()">Kopiér</button>
+            <button class="small danger" (click)="revokeShare()">Stop deling</button>
+          </div>
+        </div>
+      }
 
       @for (g of l.groups; track g.categoryName) {
         <div class="card">
@@ -24,9 +38,13 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel } from '
             <label class="list-item" style="cursor:pointer">
               <input type="checkbox" class="check" [checked]="line.isChecked"
                      (change)="toggle(line)" />
-              <span class="grow" [class.checked]="line.isChecked">
+              <span class="grow" [class.checked]="line.isChecked || line.quantity === 0">
                 {{ line.name }} — {{ qty(line.quantity) }} {{ label(line.unit) }}
                 @if (line.isManual) { <span class="badge">løs</span> }
+                @if (line.quantity === 0) { <span class="badge">dækket af lager</span> }
+                @else if (line.onHandQuantity != null) {
+                  <span class="badge">har {{ qty(line.onHandQuantity) }} {{ label(line.onHandUnit!) }} hjemme</span>
+                }
               </span>
               <span class="muted" style="font-size:.72rem">{{ line.sources.join(', ') }}</span>
             </label>
@@ -76,6 +94,8 @@ export class ShoppingListPage implements OnInit {
   text = '';
   qtyInput = 1;
   unit: Unit = 'Stk';
+  shareUrl = signal('');
+  shareCopied = signal(false);
 
   ngOnInit() {
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
@@ -106,6 +126,31 @@ export class ShoppingListPage implements OnInit {
     if (!id || !this.text.trim()) return;
     this.api.addWeekManualItem(id, { freeText: this.text.trim(), quantity: Number(this.qtyInput) || 1, unit: this.unit })
       .subscribe(() => { this.text = ''; this.qtyInput = 1; this.load(); });
+  }
+
+  // Opret delings-link (uden login) og vis det, så det kan sendes til den der handler.
+  share() {
+    const id = this.state.selectedWeekId();
+    if (!id) return;
+    this.api.createShare(id).subscribe(r => {
+      this.shareUrl.set(`${location.origin}/del/${r.token}`);
+      this.shareCopied.set(false);
+      this.copyShare();
+    });
+  }
+
+  copyShare() {
+    const url = this.shareUrl();
+    if (!url) return;
+    navigator.clipboard?.writeText(url).then(
+      () => this.shareCopied.set(true),
+      () => this.shareCopied.set(false));
+  }
+
+  revokeShare() {
+    const id = this.state.selectedWeekId();
+    if (!id || !confirm('Stop delingen? Linket holder op med at virke.')) return;
+    this.api.revokeShare(id).subscribe(() => { this.shareUrl.set(''); this.shareCopied.set(false); });
   }
 
   qty(n: number): string {

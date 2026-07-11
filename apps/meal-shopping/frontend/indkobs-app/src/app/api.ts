@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
-  Week, WeekDetail, ShoppingList, Unit
+  Week, WeekDetail, ShoppingList, Unit,
+  CatalogRecipe, AdoptResult, PantryItem, ShareToken
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -75,6 +76,31 @@ export class Api {
   getShoppingList(weekId: number): Observable<ShoppingList> { return this.http.get<ShoppingList>(`${API}/weeks/${weekId}/shopping-list`); }
   setCheck(weekId: number, lineKey: string, isChecked: boolean) {
     return this.http.put(`${API}/weeks/${weekId}/shopping-list/check`, { lineKey, isChecked });
+  }
+
+  // ----- Inspiration / katalog -----
+  getCatalog(): Observable<CatalogRecipe[]> { return this.http.get<CatalogRecipe[]>(`${API}/catalog/recipes`); }
+  adoptCatalogRecipe(id: number, body: { weekId?: number | null; servings?: number | null; dayOfWeek?: number | null }) {
+    return this.http.post<AdoptResult>(`${API}/catalog/recipes/${id}/adopt`, body);
+  }
+
+  // ----- Køkkenlager -----
+  getPantry(): Observable<PantryItem[]> { return this.http.get<PantryItem[]>(`${API}/pantry`); }
+  addPantryItem(body: { ingredientId?: number | null; ingredientName?: string | null; quantity: number; unit: Unit }) {
+    return this.http.post<PantryItem>(`${API}/pantry`, body);
+  }
+  updatePantryItem(id: number, body: { quantity: number; unit: Unit }) {
+    return this.http.put(`${API}/pantry/${id}`, body);
+  }
+  deletePantryItem(id: number) { return this.http.delete(`${API}/pantry/${id}`); }
+
+  // ----- Deling af indkøbsliste -----
+  createShare(weekId: number) { return this.http.post<ShareToken>(`${API}/weeks/${weekId}/share`, {}); }
+  revokeShare(weekId: number) { return this.http.delete(`${API}/weeks/${weekId}/share`); }
+  // Anonyme kald (bruges af den offentlige del-side; token i URL'en er adgangen)
+  getSharedList(token: string): Observable<ShoppingList> { return this.http.get<ShoppingList>(`${API}/share/${token}`); }
+  setSharedCheck(token: string, lineKey: string, isChecked: boolean) {
+    return this.http.put(`${API}/share/${token}/check`, { lineKey, isChecked });
   }
 }
 

@@ -66,8 +66,9 @@ public class IngredientsController : ControllerBase
         // Bloker sletning hvis ingrediensen er i brug (FK Restrict ville ellers fejle).
         var inUse = await _db.RecipeIngredients.AnyAsync(r => r.IngredientId == id)
                  || await _db.ItemGroupIngredients.AnyAsync(g => g.IngredientId == id)
-                 || await _db.WeekManualItems.AnyAsync(m => m.IngredientId == id);
-        if (inUse) return Conflict("Ingrediensen bruges i en ret, varegruppe eller løs vare og kan ikke slettes.");
+                 || await _db.WeekManualItems.AnyAsync(m => m.IngredientId == id)
+                 || await _db.PantryItems.AnyAsync(p => p.IngredientId == id);
+        if (inUse) return Conflict("Ingrediensen bruges i en ret, varegruppe, løs vare eller lageret og kan ikke slettes.");
 
         _db.Ingredients.Remove(ing);
         await _db.SaveChangesAsync();

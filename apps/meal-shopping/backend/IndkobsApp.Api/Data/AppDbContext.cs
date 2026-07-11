@@ -19,6 +19,10 @@ public class AppDbContext : DbContext
     public DbSet<WeekItemGroup> WeekItemGroups => Set<WeekItemGroup>();
     public DbSet<WeekManualItem> WeekManualItems => Set<WeekManualItem>();
     public DbSet<ShoppingListCheck> ShoppingListChecks => Set<ShoppingListCheck>();
+    public DbSet<CatalogRecipe> CatalogRecipes => Set<CatalogRecipe>();
+    public DbSet<CatalogRecipeIngredient> CatalogRecipeIngredients => Set<CatalogRecipeIngredient>();
+    public DbSet<PantryItem> PantryItems => Set<PantryItem>();
+    public DbSet<WeekShareToken> WeekShareTokens => Set<WeekShareToken>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -147,6 +151,46 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.WeekId, x.LineKey }).IsUnique();
             e.HasOne(x => x.Week)
                 .WithMany(w => w.Checks)
+                .HasForeignKey(x => x.WeekId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CatalogRecipe>(e =>
+        {
+            e.Property(x => x.Title).IsRequired().HasMaxLength(150);
+            e.Property(x => x.Note).HasMaxLength(1000);
+            e.Property(x => x.Tags).HasMaxLength(300);
+        });
+
+        b.Entity<CatalogRecipeIngredient>(e =>
+        {
+            e.Property(x => x.Name).IsRequired().HasMaxLength(150);
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
+            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.HasOne(x => x.CatalogRecipe)
+                .WithMany(r => r.Ingredients)
+                .HasForeignKey(x => x.CatalogRecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PantryItem>(e =>
+        {
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
+            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Ingredient)
+                .WithMany()
+                .HasForeignKey(x => x.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.HouseholdId);
+        });
+
+        b.Entity<WeekShareToken>(e =>
+        {
+            e.Property(x => x.Token).IsRequired().HasMaxLength(64);
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasOne(x => x.Week)
+                .WithMany()
                 .HasForeignKey(x => x.WeekId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

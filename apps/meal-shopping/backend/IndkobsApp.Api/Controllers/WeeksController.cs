@@ -213,6 +213,33 @@ public class WeeksController : ControllerBase
         return NoContent();
     }
 
+    // ---------- Deling af indkøbslisten (link uden login) ----------
+    /// <summary>Opret (eller genbrug) et delings-token for ugens indkøbsliste.</summary>
+    [HttpPost("{id:int}/share")]
+    public async Task<ActionResult<ShareTokenDto>> CreateShare(int id)
+    {
+        if (!await OwnsWeek(id)) return NotFound();
+
+        var existing = await _db.WeekShareTokens.FirstOrDefaultAsync(t => t.WeekId == id);
+        if (existing != null) return new ShareTokenDto(existing.Token);
+
+        var share = new WeekShareToken { WeekId = id, Token = Guid.NewGuid().ToString("N") };
+        _db.WeekShareTokens.Add(share);
+        await _db.SaveChangesAsync();
+        return new ShareTokenDto(share.Token);
+    }
+
+    /// <summary>Tilbagekald delingen — linket holder op med at virke.</summary>
+    [HttpDelete("{id:int}/share")]
+    public async Task<IActionResult> RevokeShare(int id)
+    {
+        if (!await OwnsWeek(id)) return NotFound();
+        var tokens = await _db.WeekShareTokens.Where(t => t.WeekId == id).ToListAsync();
+        _db.WeekShareTokens.RemoveRange(tokens);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ---------- Hjælper ----------
     private async Task<WeekDetailDto?> BuildDetail(int id)
     {
