@@ -17,6 +17,10 @@
     <a routerLink="/indkob" routerLinkActive="active"><span class="ic">🛒</span>Indkøb</a>
     <a routerLink="/retter" routerLinkActive="active"><span class="ic">🍽️</span>Retter</a>
     <a routerLink="/lager" routerLinkActive="active"><span class="ic">🥫</span>Lager</a>
+    <a routerLink="/hjem" routerLinkActive="active" class="has-badge">
+      <span class="ic">🏠</span>Hjem
+      @if (tasks.attention() > 0) { <span class="nav-badge">{{ tasks.attention() }}</span> }
+    </a>
     <a routerLink="/varegrupper" routerLinkActive="active"><span class="ic">📦</span>Grupper</a>
     <a routerLink="/admin" routerLinkActive="active"><span class="ic">⚙️</span>Admin</a>
   </nav>

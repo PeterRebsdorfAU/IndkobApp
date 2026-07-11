@@ -89,3 +89,11 @@ public record ShareTokenDto(string Token);
 
 // ---------- Lager-kredsløb ----------
 public record StockCheckedResultDto(int LinesStocked);
+
+// ---------- Hjemmets opgaver ----------
+// IntervalDays null = engangsopgave. CurrentAssignee = hvis tur det er (fra rotation).
+public record HouseholdTaskDto(
+    int Id, string Title, int? IntervalDays, DateOnly? NextDueDate,
+    List<string> Assignees, string? CurrentAssignee, bool IsDone, DateTime? LastCompletedUtc);
+public record HouseholdTaskUpsertDto(string Title, int? IntervalDays, List<string>? Assignees);
+public record TasksSummaryDto(int Overdue, int OpenTodos);

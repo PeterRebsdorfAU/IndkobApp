@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<CatalogRecipeIngredient> CatalogRecipeIngredients => Set<CatalogRecipeIngredient>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<WeekShareToken> WeekShareTokens => Set<WeekShareToken>();
+    public DbSet<HouseholdTask> HouseholdTasks => Set<HouseholdTask>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -198,6 +199,14 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.WeekId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<HouseholdTask>(e =>
+        {
+            e.Property(x => x.Title).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Assignees).HasMaxLength(200);
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.HouseholdId);
         });
     }
 }

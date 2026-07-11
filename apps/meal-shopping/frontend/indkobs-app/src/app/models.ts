@@ -100,3 +100,13 @@ export interface ShareToken { token: string; }
 
 // ---------- Lager-kredsløb ----------
 export interface StockCheckedResult { linesStocked: number; }
+
+// ---------- Hjemmets opgaver ----------
+export interface HouseholdTask {
+  id: number; title: string;
+  intervalDays: number | null;      // null = engangsopgave
+  nextDueDate: string | null;       // "yyyy-MM-dd" (kun gentagne)
+  assignees: string[]; currentAssignee: string | null;
+  isDone: boolean; lastCompletedUtc: string | null;
+}
+export interface TasksSummary { overdue: number; openTodos: number; }
