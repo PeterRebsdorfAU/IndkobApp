@@ -3,6 +3,7 @@ using System;
 using IndkobsApp.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IndkobsApp.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711163341_AddCookedTimestamp")]
+    partial class AddCookedTimestamp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -149,51 +152,6 @@ namespace IndkobsApp.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Households");
-                });
-
-            modelBuilder.Entity("IndkobsApp.Api.Models.HouseholdTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AssigneeIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Assignees")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("HouseholdId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("IntervalDays")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsDone")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastCompletedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly?>("NextDueDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HouseholdId");
-
-                    b.ToTable("HouseholdTasks");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Ingredient", b =>
@@ -570,15 +528,6 @@ namespace IndkobsApp.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("CatalogRecipe");
-                });
-
-            modelBuilder.Entity("IndkobsApp.Api.Models.HouseholdTask", b =>
-                {
-                    b.HasOne("IndkobsApp.Api.Models.Household", null)
-                        .WithMany()
-                        .HasForeignKey("HouseholdId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Ingredient", b =>

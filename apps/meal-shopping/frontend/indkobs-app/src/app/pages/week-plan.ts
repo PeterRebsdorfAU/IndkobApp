@@ -52,8 +52,13 @@ import { Week, WeekDetail, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, uni
         @for (wr of d.recipes; track wr.id) {
           <div class="list-item">
             <div class="grow">
-              <div>{{ wr.recipeName }}</div>
+              <div>{{ wr.recipeName }} @if (wr.cookedUtc) { <span class="badge">✅ lavet</span> }</div>
               <div class="muted">Basis {{ wr.baseServings }} pers.</div>
+              @if (!wr.cookedUtc) {
+                <button class="small" style="margin-top:.25rem" (click)="markCooked(wr.id)">🍳 Lavet</button>
+              } @else {
+                <button class="btn-link" style="font-size:.75rem" (click)="unmarkCooked(wr.id)">fortryd</button>
+              }
             </div>
             <div>
               <label>Personer</label>
@@ -206,6 +211,16 @@ export class WeekPlanPage implements OnInit {
   }
   removeRecipe(weekRecipeId: number) {
     this.api.removeWeekRecipe(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
+  }
+
+  // "Lavet": trækker rettens ingredienser (skaleret) fra køkkenlageret.
+  markCooked(weekRecipeId: number) {
+    if (!confirm('Markér som lavet? Ingredienserne trækkes fra køkkenlageret.')) return;
+    this.api.markCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
+  }
+  unmarkCooked(weekRecipeId: number) {
+    if (!confirm('Fortryd "lavet"-markeringen? (Lageret føres ikke tilbage automatisk.)')) return;
+    this.api.unmarkCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
   }
 
   addGroup() {

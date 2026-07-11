@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
-  CatalogRecipe, AdoptResult, PantryItem, ShareToken
+  CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult,
+  HouseholdTask, TasksSummary
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -59,6 +60,12 @@ export class Api {
   removeWeekRecipe(weekId: number, weekRecipeId: number) {
     return this.http.delete<WeekDetail>(`${API}/weeks/${weekId}/recipes/${weekRecipeId}`);
   }
+  markCooked(weekId: number, weekRecipeId: number) {
+    return this.http.post<WeekDetail>(`${API}/weeks/${weekId}/recipes/${weekRecipeId}/cooked`, {});
+  }
+  unmarkCooked(weekId: number, weekRecipeId: number) {
+    return this.http.delete<WeekDetail>(`${API}/weeks/${weekId}/recipes/${weekRecipeId}/cooked`);
+  }
   addWeekItemGroup(weekId: number, itemGroupId: number) {
     return this.http.post<WeekDetail>(`${API}/weeks/${weekId}/item-groups`, { itemGroupId });
   }
@@ -76,6 +83,9 @@ export class Api {
   getShoppingList(weekId: number): Observable<ShoppingList> { return this.http.get<ShoppingList>(`${API}/weeks/${weekId}/shopping-list`); }
   setCheck(weekId: number, lineKey: string, isChecked: boolean) {
     return this.http.put(`${API}/weeks/${weekId}/shopping-list/check`, { lineKey, isChecked });
+  }
+  stockChecked(weekId: number) {
+    return this.http.post<StockCheckedResult>(`${API}/weeks/${weekId}/shopping-list/stock-checked`, {});
   }
 
   // ----- Inspiration / katalog -----
@@ -104,6 +114,19 @@ export class Api {
   setSharedCheck(token: string, lineKey: string, isChecked: boolean) {
     return this.http.put(`${API}/share/${token}/check`, { lineKey, isChecked });
   }
+
+  // ----- Hjemmets opgaver -----
+  getTasks(): Observable<HouseholdTask[]> { return this.http.get<HouseholdTask[]>(`${API}/tasks`); }
+  getTasksSummary(): Observable<TasksSummary> { return this.http.get<TasksSummary>(`${API}/tasks/summary`); }
+  createTask(body: { title: string; intervalDays?: number | null; assignees?: string[] | null }) {
+    return this.http.post<HouseholdTask>(`${API}/tasks`, body);
+  }
+  updateTask(id: number, body: { title: string; intervalDays?: number | null; assignees?: string[] | null }) {
+    return this.http.put<HouseholdTask>(`${API}/tasks/${id}`, body);
+  }
+  completeTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/complete`, {}); }
+  uncompleteTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/uncomplete`, {}); }
+  deleteTask(id: number) { return this.http.delete(`${API}/tasks/${id}`); }
 }
 
 // ISO-ugenummer for en given dato (til uge-vælgeren).

@@ -16,6 +16,9 @@ Derudover (bygget som afgrænsede moduler i samme app — se §10):
   mangler (behov minus lager) med "har X hjemme"-badges.
 - **Deling:** ugens indkøbsliste kan deles via et token-link (`/del/<token>`) uden login —
   modtageren kan se og krydse af, synkront med husstanden.
+- **Hjem (husstandens opgaver):** engangs-to-dos + gentagne pligter/vedligehold i én motor
+  (`HouseholdTask`): interval ruller forfaldsdato frem ved "gjort", valgfri tur-rotation
+  (komma-separerede navne), badge i navigationen med forfaldne + åbne.
 
 ## 2. Teknologi & topologi
 - **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**
@@ -130,6 +133,12 @@ POST /api/catalog/recipes/{id}/adopt      # kopiér til egne + læg evt. på uge
 POST /api/recipes/{id}/publish            # publicér egen opskrift til Inspiration (snapshot; gen-publicér = opdatér)
 DELETE /api/recipes/{id}/publish          # fjern egen opskrift fra Inspiration igen
 GET/POST/PUT/DELETE /api/pantry[/{id}]    # køkkenlager (husstands-scoped; POST merger forenelige enheder)
+POST /api/weeks/{id}/recipes/{wrId}/cooked   # "Lavet": træk ingredienser (skaleret) fra lageret (409 hvis allerede)
+DELETE /api/weeks/{id}/recipes/{wrId}/cooked # fortryd markering (lageret føres IKKE tilbage)
+POST /api/weeks/{id}/shopping-list/stock-checked # læg afkrydsede varer på lageret (idempotent via afstemning)
+GET/POST/PUT/DELETE /api/tasks[/{id}]     # hjemmets opgaver (husstands-scoped)
+POST /api/tasks/{id}/complete|uncomplete  # gjort (ruller dato + rotation) / fortryd engangs
+GET  /api/tasks/summary                   # { overdue, openTodos } til nav-badge
 POST/DELETE /api/weeks/{id}/share         # opret/tilbagekald delings-token
 GET  /api/share/{token}                   # ANONYM: hent delt liste
 PUT  /api/share/{token}/check             # ANONYM: kryds af på delt liste

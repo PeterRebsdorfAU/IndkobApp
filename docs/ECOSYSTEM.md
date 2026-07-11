@@ -77,7 +77,8 @@ flowchart TD
 | **Inspiration / Opskrifts-katalog** | Bladr i opskrifter → "Tilføj" → egne opskrifter + uge/liste. Husstande kan **publicere egne opskrifter** til siden (community-pulje) | ✅ Bygget (modul i meal-shopping) | `apps/meal-shopping/` (Retter → ✨ Inspiration) |
 | **Køkkenlager (Pantry)** | Hvad har husstanden hjemme; listen viser kun det der mangler | ✅ Bygget (modul i meal-shopping; kan udskilles senere) | `apps/meal-shopping/` (Lager-fanen) |
 | **Indkøbs-delegering (Shopper)** | Del listen via link uden login; modtager krydser af | ✅ Bygget, let udgave (modul i meal-shopping) | `apps/meal-shopping/` (`/del/<token>`) |
-| **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | 🔵 Foreslået | `apps/price-optimizer/` |
+| **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | ⛔ Droppet (jul 2026) — for omfattende/usikkert: Tjeks API er kun for betalende kunder, og Tilbudsdata.dk kræver rekvireret nøgle med ukendte vilkår. Kan genoptages senere | — |
+| **Hjemmets opgaver** | Fælles to-dos + gentagne pligter/vedligehold med forfald og tur-rotation | ✅ Bygget (modul i meal-shopping) | `apps/meal-shopping/` (Hjem-fanen) |
 | **Vare-katalog** | Kanonisk vare-identitet + SKU/stregkode-mapping | 🔵 Foreslået (fælles) | `shared/product-catalog/` |
 | **Identitet & Husstand** | Fælles login/husstand på tværs | 🔵 Foreslået (udskilles fra Madplan) | `shared/` el. `apps/identity/` |
 

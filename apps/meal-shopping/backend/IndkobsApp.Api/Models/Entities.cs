@@ -119,6 +119,12 @@ public class WeekRecipe
 
     /// <summary>Valgfri ugedag (0=mandag ... 6=søndag). Null = ikke planlagt til en bestemt dag.</summary>
     public int? DayOfWeek { get; set; }
+
+    /// <summary>
+    /// Sat når retten er markeret "lavet" — ingredienserne blev da trukket fra
+    /// køkkenlageret. Null = ikke lavet endnu.
+    /// </summary>
+    public DateTime? CookedUtc { get; set; }
 }
 
 public class WeekItemGroup
@@ -214,6 +220,38 @@ public class PantryItem
 
     public decimal Quantity { get; set; }
     public Unit Unit { get; set; }
+}
+
+/// <summary>
+/// Husstandens opgaver — én motor for tre ting:
+///  - Engangsopgaver ("ring til tandlægen"): IntervalDays = null, afkrydses med IsDone.
+///  - Gentagne pligter ("støvsug hver uge"): IntervalDays sat; "gjort" ruller NextDueDate frem.
+///  - Vedligehold ("afkalk hver 6. uge"): samme som pligter, bare længere interval.
+/// Valgfri tur-rotation: Assignees = komma-separerede navne; AssigneeIndex peger på
+/// hvis tur det er, og rykker videre ved hver "gjort".
+/// </summary>
+public class HouseholdTask
+{
+    public int Id { get; set; }
+    public int HouseholdId { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Null = engangsopgave. Ellers antal dage mellem gentagelser.</summary>
+    public int? IntervalDays { get; set; }
+
+    /// <summary>Næste forfaldsdato (kun gentagne). Forfalden når &lt;= i dag.</summary>
+    public DateOnly? NextDueDate { get; set; }
+
+    /// <summary>Komma-separerede navne til tur-rotation (fx "Peter,Clara"). Null = ingen.</summary>
+    public string? Assignees { get; set; }
+    public int AssigneeIndex { get; set; }
+
+    /// <summary>Kun engangsopgaver: afkrydset/færdig.</summary>
+    public bool IsDone { get; set; }
+
+    public DateTime? LastCompletedUtc { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
 
 /// <summary>

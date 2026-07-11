@@ -27,7 +27,8 @@ public record ItemGroupUpsertDto(string Name, List<IngredientLineInputDto> Ingre
 public record WeekDto(int Id, int Year, int WeekNumber);
 public record WeekCreateDto(int Year, int WeekNumber);
 
-public record WeekRecipeDto(int Id, int RecipeId, string RecipeName, int BaseServings, int? Servings, int? DayOfWeek);
+// CookedUtc sat = retten er markeret "lavet" (ingredienser trukket fra lageret).
+public record WeekRecipeDto(int Id, int RecipeId, string RecipeName, int BaseServings, int? Servings, int? DayOfWeek, DateTime? CookedUtc = null);
 public record WeekItemGroupDto(int Id, int ItemGroupId, string ItemGroupName);
 public record WeekManualItemDto(int Id, int? IngredientId, string Name, decimal Quantity, Unit Unit);
 
@@ -85,3 +86,14 @@ public record PantryUpdateDto(decimal Quantity, Unit Unit);
 
 // ---------- Deling af indkøbsliste ----------
 public record ShareTokenDto(string Token);
+
+// ---------- Lager-kredsløb ----------
+public record StockCheckedResultDto(int LinesStocked);
+
+// ---------- Hjemmets opgaver ----------
+// IntervalDays null = engangsopgave. CurrentAssignee = hvis tur det er (fra rotation).
+public record HouseholdTaskDto(
+    int Id, string Title, int? IntervalDays, DateOnly? NextDueDate,
+    List<string> Assignees, string? CurrentAssignee, bool IsDone, DateTime? LastCompletedUtc);
+public record HouseholdTaskUpsertDto(string Title, int? IntervalDays, List<string>? Assignees);
+public record TasksSummaryDto(int Overdue, int OpenTodos);
