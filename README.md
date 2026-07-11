@@ -12,6 +12,12 @@ og få automatisk **én samlet, kategori-sorteret indkøbsliste** hvor overlappe
 > **Vil du i skyen?** Hele udrulningen (gratis, uden kreditkort) er beskrevet i **[DEPLOY.md](DEPLOY.md)**.
 > Resten af denne fil handler om at køre lokalt.
 
+## 📚 Dokumentation
+- **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.md)** — visionen og de samarbejdende systemer (madplan, køkkenlager,
+  indkøbs-delegering, pris-optimering) + deres ansvarsområder. *Send denne til andre agenter for kontekst.*
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — teknisk dybde-reference for denne app (datamodel, auth, API, deploy).
+- **[DEPLOY.md](DEPLOY.md)** — cloud-udrulning (Neon + Render) trin for trin.
+
 ---
 
 ## 1. Forudsætninger

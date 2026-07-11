@@ -130,5 +130,32 @@ if (mode == "migrate")
     return 0;
 }
 
-Console.WriteLine("Ukendt mode. Brug 'inspect' eller 'migrate'.");
+if (mode == "addhousehold")
+{
+    if (args.Length < 4) { Console.WriteLine("Brug: addhousehold \"<navn>\" \"<login>\" \"<adgangskode>\""); return 1; }
+    var name = args[1];
+    var email = args[2].Trim().ToLowerInvariant();
+    var password = args[3];
+
+    if (!await TableExists("Households")) { Console.WriteLine("STOP: Households-tabel findes ikke (kør 'migrate' først)."); return 1; }
+
+    await using (var chk = new NpgsqlCommand("SELECT COUNT(*) FROM \"Households\" WHERE \"Email\"=@e", db))
+    {
+        chk.Parameters.AddWithValue("e", email);
+        if ((long)(await chk.ExecuteScalarAsync())! > 0) { Console.WriteLine($"STOP: login '{email}' findes allerede."); return 1; }
+    }
+
+    var hash = new PasswordHasher<object>().HashPassword(new object(), password);
+    await using var cmd = new NpgsqlCommand(
+        @"INSERT INTO ""Households"" (""Name"",""Email"",""PasswordHash"",""CreatedUtc"")
+          VALUES (@n,@e,@p, now() at time zone 'utc') RETURNING ""Id"";", db);
+    cmd.Parameters.AddWithValue("n", name);
+    cmd.Parameters.AddWithValue("e", email);
+    cmd.Parameters.AddWithValue("p", hash);
+    var id = (int)(await cmd.ExecuteScalarAsync())!;
+    Console.WriteLine($"OK: oprettede husstand '{name}' (login '{email}') med Id={id}. Starter uden data.");
+    return 0;
+}
+
+Console.WriteLine("Ukendt mode. Brug 'inspect', 'migrate' eller 'addhousehold'.");
 return 1;
