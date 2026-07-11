@@ -1,0 +1,138 @@
+# Madplan & Indkøb — arkitektur (agent-reference)
+
+> Teknisk reference for **den nuværende, kørende app**. Formålet er, at en agent kan arbejde i
+> koden uden at gætte. Kør-/deploy-trin står i [`../README.md`](../README.md) og
+> [`../DEPLOY.md`](../DEPLOY.md); helheden i [`ECOSYSTEM.md`](ECOSYSTEM.md).
+
+## 1. Hvad appen gør
+Én husstand vælger ugens **retter** (og "varegrupper" som fx Frokost/Toilet). Appen genererer **én
+samlet indkøbsliste** hvor ens ingredienser lægges sammen, enheder konverteres (g↔kg, ml↔l),
+listen sorteres efter butikskategori, og hver linje kan krydses af. Flere husstande er isolerede.
+
+## 2. Teknologi & topologi
+- **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**
+  → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `frontend/indkobs-app`,
+  build `npm ci && npm run build`, publish `dist/indkobs-app/browser`, SPA-rewrite `/* → /index.html`.
+- **Backend:** ASP.NET Core 10 Web API (C#), Docker. Hostes som **Render Web Service**
+  → `indkobapp.onrender.com`. Bygges fra branch `cloud-deploy` via `/Dockerfile`.
+- **Database:** PostgreSQL på **Neon** (branch `production`), EF Core 10 (Npgsql), code-first migrations.
+- **Auth:** JWT (Bearer), login pr. husstand.
+
+```mermaid
+flowchart LR
+    PWA[Angular PWA<br/>indkobapp-web.onrender.com] -->|"HTTPS /api, Bearer JWT"| API[.NET API<br/>indkobapp.onrender.com]
+    API -->|EF Core / Npgsql| DB[(Neon PostgreSQL<br/>branch: production)]
+```
+
+- Frontend finder backend via `environment.prod.ts` → `apiBase = https://indkobapp.onrender.com/api`.
+  Lokalt (tom apiBase) bruges `location.hostname:5298` (se `frontend/.../src/app/api.ts`).
+
+## 3. Repo-layout
+```
+IndkobApp/  (GitHub: PeterRebsdorfAU/IndkobApp, public)
+├─ backend/IndkobsApp.Api/     # .NET API
+│  ├─ Models/                  # entiteter + Unit-enum + UnitMath (enhedsmatematik)
+│  ├─ Data/                    # AppDbContext, DbSeeder, Migrations/
+│  ├─ Dtos/ Services/ Controllers/
+│  └─ Program.cs               # DI, JWT, CORS, auto-migrate + seed
+├─ frontend/indkobs-app/       # Angular PWA (pages/, shared/, auth*.ts, api.ts, models.ts)
+├─ tools/DataMigrator/         # engangs-CLI: in-place skema-opgradering + opret husstand (bevarer data)
+├─ Dockerfile  render.yaml     # deploy
+└─ docs/                       # dette + ECOSYSTEM.md
+```
+**Branches:** `main` (frontend deployer herfra) og `cloud-deploy` (backend deployer herfra; primær arbejdsbranch).
+Hold dem i sync ved at merge `cloud-deploy → main`.
+
+## 4. Datamodel
+
+```mermaid
+erDiagram
+    Household ||--o{ Recipe : ejer
+    Household ||--o{ ItemGroup : ejer
+    Household ||--o{ Week : ejer
+    Category ||--o{ Ingredient : kategoriserer
+    Recipe ||--o{ RecipeIngredient : har
+    Ingredient ||--o{ RecipeIngredient : indgår
+    ItemGroup ||--o{ ItemGroupIngredient : har
+    Ingredient ||--o{ ItemGroupIngredient : indgår
+    Week ||--o{ WeekRecipe : indeholder
+    Week ||--o{ WeekItemGroup : indeholder
+    Week ||--o{ WeekManualItem : indeholder
+    Week ||--o{ ShoppingListCheck : afkrydsning
+    Recipe ||--o{ WeekRecipe : vælges
+    ItemGroup ||--o{ WeekItemGroup : vælges
+```
+
+- **Husstands-scoping:** `Recipe`, `ItemGroup`, `Week` har `HouseholdId` (cascade-delete fra `Household`).
+  `Ingredient` og `Category` er **globale/fælles** (ikke pr. husstand) — bevidst valg (fælles opslagsdata).
+- **`Ingredient`** normaliseres: `NormalizedName` = trimmet + lowercased, med unikt indeks → ingen dubletter
+  ("løg" = "Løg" = " Løg "). Get-or-create i `IngredientService`.
+- **`Week`** er unik pr. `(HouseholdId, Year, WeekNumber)`.
+- **`WeekRecipe.Servings`** (nullable) overstyrer rettens basis-portioner → skalering. `DayOfWeek` (nullable) = valgfri dag.
+- **`WeekManualItem`** = løs vare (enten koblet til en `Ingredient` eller fritekst).
+- **`ShoppingListCheck`** husker afkrydsning pr. aggregeret linje via en stabil `LineKey` (se §6).
+- **`Unit`** er en enum gemt som tekst i DB (Stk, G, Kg, Ml, L, Spsk, Tsk, Daase, Pakke, Knivspids, Bundt, Fed).
+
+## 5. Auth-model
+- **Én login pr. husstand** (delt af husstandens medlemmer). Feltet hedder `Email` men bruges som
+  **brugernavn** (normaliseres lowercased; behøver ikke være en email).
+- **Login:** `POST /api/auth/login {email,password}` → JWT (claim `householdId`, 60 dages levetid).
+  Password hashes med ASP.NET Identity `PasswordHasher`.
+- **Beskyttelse:** Alle data-controllers har `[Authorize]`; de læser `User.GetHouseholdId()` og filtrerer/skriver på den.
+- **Admin (opret/list/slet husstande):** `POST/GET/DELETE /api/admin/households`, beskyttet af header
+  `X-Admin-Key` = `Admin:Key`. Ingen selvbetjent registrering (kun ejer opretter husstande).
+- **Ingen** "glemt kode"/selvbetjening bevidst (privat app). Ændring = slet/opret husstand.
+
+## 6. Indkøbsliste-aggregering (kernelogik)
+Findes i `Services/ShoppingListService.cs`; enheds-matematik i `Models/Unit.cs` (`UnitMath`).
+
+1. Saml bidrag for ugen: retter (mængder × `ønskede/basis`-portioner), varegrupper (uskaleret), løse varer.
+2. Grupér pr. **ingrediens** og pr. **måle-familie**:
+   - Masse (g/kg) summeres i gram; volumen (ml/l) i ml → vises i pæn enhed (1500 g → 1,5 kg).
+   - "Count"-enheder (stk, pakke, dåse …) kan ikke konverteres → **én linje pr. distinkt enhed**.
+   - Uforenelige enheder for samme vare → **separate linjer** (fx "260 g smør" + "1 pakke smør").
+3. Grupér/sortér efter ingrediensens **kategori** (butiksrækkefølge); vare uden kategori + fritekst
+   havner i "Andet / løse varer".
+4. **`LineKey`** er stabil (`ing:{id}:{family}` eller `ing:{id}:cnt:{unit}` / `txt:{navn}:…`) så
+   afkrydsning (`ShoppingListCheck`) huskes selvom listen genberegnes.
+
+## 7. API-overflade (alle kræver JWT undtagen login/admin)
+```
+POST   /api/auth/login            GET /api/auth/me
+POST/GET/DELETE /api/admin/households[/{id}]      (X-Admin-Key)
+GET/POST/PUT/DELETE /api/recipes[/{id}]
+GET/POST/PUT/DELETE /api/item-groups[/{id}]
+GET/POST/PUT/DELETE /api/ingredients[/{id}]        (fælles data)
+GET/POST/PUT/DELETE /api/categories[/{id}]         (fælles data)
+GET/POST/DELETE /api/weeks[/{id}]
+POST/PUT/DELETE /api/weeks/{id}/recipes[/{wrId}]
+POST/DELETE     /api/weeks/{id}/item-groups[/{wgId}]
+POST/DELETE     /api/weeks/{id}/manual-items[/{miId}]
+GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret
+PUT  /api/weeks/{id}/shopping-list/check  # sæt/fjern afkrydsning
+```
+
+## 8. Konfiguration & hemmeligheder
+Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyrer `appsettings.json`):
+- `ConnectionStrings__Default` — Neon (.NET/Npgsql-format). **Hemmelig.**
+- `Jwt__Key` — JWT-signeringsnøgle (≥32 tegn). **Hemmelig.**
+- `Admin__Key` — nøgle til admin-endpoints. **Hemmelig.**
+- `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
+  Repoet er offentligt, så prod-nøglerne må aldrig committes.
+
+Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis der ingen husstand findes).
+
+## 9. Kendte forbehold / gotchas
+- **Gratis Render:** backend "sover" efter inaktivitet → ~30-60 sek cold start på første kald.
+- **PWA-cache:** ny frontend-version kræver evt. at appen lukkes/genindlæses (service worker opdaterer sig).
+- **Frontend deployer fra `main`, backend fra `cloud-deploy`** — husk at merge, ellers divergerer de.
+- **Skema-ændringer skal bevare data:** brug data-bevarende migration (jf. `tools/DataMigrator`),
+  ALDRIG drop/reset af produktions-databasen. (Neon har point-in-time restore som sikkerhedsnet.)
+- **`Ingredient`/`Category` er globale** — en husstand kan i princippet se/ændre fælles opslagsdata.
+  Overvej at scope dem hvis fuld isolation ønskes senere.
+
+## 10. Denne apps ansvarsgrænse (ift. økosystemet)
+- **Ejer:** retter, ugeplan, indkøbsliste-generering + aggregering, enhedslogik, (pt.) husstands-login.
+- **Ejer IKKE:** hvad man har hjemme (→ Køkkenlager), priser/butiksvalg (→ Pris), indkøbs-udførelse (→ Shopper).
+- **Fremtidige integrationer:** spørg Køkkenlageret for at trække "haves" fra listen; udstil skal-købes-listen
+  til Shopper/Pris; migrér `Ingredient` mod et fælles Vare-katalog. Se [`ECOSYSTEM.md`](ECOSYSTEM.md).
