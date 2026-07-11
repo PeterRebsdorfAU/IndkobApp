@@ -39,14 +39,14 @@ import { HouseholdTask } from '../models';
           <input type="number" min="1" placeholder="Dage" style="width:80px" [(ngModel)]="customDays" />
         }
         @if (newInterval !== null) {
-          <input placeholder="Tur (fx Peter, Clara)" style="max-width:170px" [(ngModel)]="newAssignees" />
+          <input placeholder="Tur — valgfrit (fx Peter, Clara)" style="max-width:190px" [(ngModel)]="newAssignees" />
         }
         <button class="primary" (click)="add()" [disabled]="saving()">+ Tilføj</button>
       </div>
       @if (error()) { <div class="error">{{ error() }}</div> }
       @if (newInterval !== null) {
         <p class="muted">Pligten står som forfalden i dag — første "Gjort" starter rytmen.
-          Med tur-navne skiftes I automatisk.</p>
+          Tur-feltet er valgfrit: tomt = ingen person på; med navne skiftes I automatisk.</p>
       }
     </div>
 
