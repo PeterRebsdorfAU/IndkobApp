@@ -11,8 +11,8 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    dockerfilePath: apps/meal-shopping/Dockerfile
+    dockerContext: apps/meal-shopping
     healthCheckPath: /api/categories
     envVars:
       # Neon PostgreSQL connection string (.NET/Npgsql-format). Hemmelig -> sættes i dashboardet.
@@ -31,7 +31,7 @@ services:
     name: indkobapp-web
     runtime: static
     plan: free
-    rootDir: frontend/indkobs-app
+    rootDir: apps/meal-shopping/frontend/indkobs-app
     buildCommand: npm ci && npm run build
     staticPublishPath: dist/indkobs-app/browser
     # SPA-fallback: alle ruter serveres af index.html (Angular router håndterer resten)

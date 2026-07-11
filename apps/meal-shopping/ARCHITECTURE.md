@@ -1,8 +1,8 @@
 # Madplan & Indkøb — arkitektur (agent-reference)
 
-> Teknisk reference for **den nuværende, kørende app**. Formålet er, at en agent kan arbejde i
-> koden uden at gætte. Kør-/deploy-trin står i [`../README.md`](../README.md) og
-> [`../DEPLOY.md`](../DEPLOY.md); helheden i [`ECOSYSTEM.md`](ECOSYSTEM.md).
+> Teknisk reference for **den nuværende, kørende app** (`apps/meal-shopping/`). Formålet er, at en
+> agent kan arbejde i koden uden at gætte. Kør-/deploy-trin står i [`README.md`](README.md) og
+> [`DEPLOY.md`](DEPLOY.md); helheden i [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md).
 
 ## 1. Hvad appen gør
 Én husstand vælger ugens **retter** (og "varegrupper" som fx Frokost/Toilet). Appen genererer **én
@@ -11,10 +11,10 @@ listen sorteres efter butikskategori, og hver linje kan krydses af. Flere hussta
 
 ## 2. Teknologi & topologi
 - **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**
-  → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `frontend/indkobs-app`,
+  → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `apps/meal-shopping/frontend/indkobs-app`,
   build `npm ci && npm run build`, publish `dist/indkobs-app/browser`, SPA-rewrite `/* → /index.html`.
 - **Backend:** ASP.NET Core 10 Web API (C#), Docker. Hostes som **Render Web Service**
-  → `indkobapp.onrender.com`. Bygges fra branch `cloud-deploy` via `/Dockerfile`.
+  → `indkobapp.onrender.com`. Bygges fra branch `cloud-deploy`, Docker-context `apps/meal-shopping`, `apps/meal-shopping/Dockerfile`.
 - **Database:** PostgreSQL på **Neon** (branch `production`), EF Core 10 (Npgsql), code-first migrations.
 - **Auth:** JWT (Bearer), login pr. husstand.
 
@@ -27,9 +27,10 @@ flowchart LR
 - Frontend finder backend via `environment.prod.ts` → `apiBase = https://indkobapp.onrender.com/api`.
   Lokalt (tom apiBase) bruges `location.hostname:5298` (se `frontend/.../src/app/api.ts`).
 
-## 3. Repo-layout
+## 3. Placering i monorepoet
+Denne app ligger under `apps/meal-shopping/` i repoet `PeterRebsdorfAU/IndkobApp` (public).
 ```
-IndkobApp/  (GitHub: PeterRebsdorfAU/IndkobApp, public)
+apps/meal-shopping/
 ├─ backend/IndkobsApp.Api/     # .NET API
 │  ├─ Models/                  # entiteter + Unit-enum + UnitMath (enhedsmatematik)
 │  ├─ Data/                    # AppDbContext, DbSeeder, Migrations/
@@ -37,9 +38,11 @@ IndkobApp/  (GitHub: PeterRebsdorfAU/IndkobApp, public)
 │  └─ Program.cs               # DI, JWT, CORS, auto-migrate + seed
 ├─ frontend/indkobs-app/       # Angular PWA (pages/, shared/, auth*.ts, api.ts, models.ts)
 ├─ tools/DataMigrator/         # engangs-CLI: in-place skema-opgradering + opret husstand (bevarer data)
-├─ Dockerfile  render.yaml     # deploy
-└─ docs/                       # dette + ECOSYSTEM.md
+├─ Dockerfile                  # backend-image (context = apps/meal-shopping)
+└─ README.md  ARCHITECTURE.md  DEPLOY.md
 ```
+Fælles økosystem-ting ligger i repo-roden: `docs/ECOSYSTEM.md`, `shared/`, `render.yaml`.
+
 **Branches:** `main` (frontend deployer herfra) og `cloud-deploy` (backend deployer herfra; primær arbejdsbranch).
 Hold dem i sync ved at merge `cloud-deploy → main`.
 

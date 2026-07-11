@@ -82,7 +82,7 @@ flowchart TD
 
 ## 4. Systemerne i detaljer
 
-### 4.1 Madplan & Indkøb  *(findes i dag — se `docs/ARCHITECTURE.md`)*
+### 4.1 Madplan & Indkøb  *(findes i dag — se [`apps/meal-shopping/ARCHITECTURE.md`](../apps/meal-shopping/ARCHITECTURE.md))*
 - **Mission:** Vælg ugens retter/varegrupper → få én samlet, kategori-sorteret indkøbsliste hvor
   overlappende ingredienser lægges sammen.
 - **Ejer:** Opskrifter, varegrupper, ugeplaner, den genererede indkøbsliste og dens afkrydsning,
