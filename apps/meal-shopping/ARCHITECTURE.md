@@ -125,8 +125,10 @@ POST/DELETE     /api/weeks/{id}/item-groups[/{wgId}]
 POST/DELETE     /api/weeks/{id}/manual-items[/{miId}]
 GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret, MINUS lager
 PUT  /api/weeks/{id}/shopping-list/check  # sæt/fjern afkrydsning
-GET  /api/catalog/recipes                 # inspirations-katalog (fælles)
+GET  /api/catalog/recipes                 # inspirations-katalog (kurateret + community; SharedBy = delende husstand)
 POST /api/catalog/recipes/{id}/adopt      # kopiér til egne + læg evt. på uge {weekId?,servings?,dayOfWeek?}
+POST /api/recipes/{id}/publish            # publicér egen opskrift til Inspiration (snapshot; gen-publicér = opdatér)
+DELETE /api/recipes/{id}/publish          # fjern egen opskrift fra Inspiration igen
 GET/POST/PUT/DELETE /api/pantry[/{id}]    # køkkenlager (husstands-scoped; POST merger forenelige enheder)
 POST/DELETE /api/weeks/{id}/share         # opret/tilbagekald delings-token
 GET  /api/share/{token}                   # ANONYM: hent delt liste

@@ -39,6 +39,7 @@ export interface IngredientLineInput {
 
 export interface Recipe {
   id: number; name: string; note: string | null; servings: number; ingredients: IngredientLine[];
+  isPublic: boolean; // publiceret til den fælles inspirationsside?
 }
 export interface RecipeUpsert {
   name: string; note: string | null; servings: number; ingredients: IngredientLineInput[];
@@ -83,6 +84,7 @@ export interface CatalogLine { name: string; quantity: number; unit: Unit; }
 export interface CatalogRecipe {
   id: number; title: string; note: string | null; servings: number;
   tags: string[]; ingredients: CatalogLine[];
+  sharedBy: string | null; // husstand der har delt den (null = kurateret)
 }
 export interface AdoptResult { recipeId: number; recipeName: string; weekId: number | null; }
 

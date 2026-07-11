@@ -30,7 +30,12 @@ public class RecipesController : ControllerBase
             .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
             .OrderBy(r => r.Name)
             .ToListAsync();
-        return recipes.Select(Map);
+        // Hvilke af husstandens opskrifter er publiceret til inspirationssiden?
+        var publicIds = await _db.CatalogRecipes
+            .Where(c => c.SourceHouseholdId == hid && c.SourceRecipeId != null)
+            .Select(c => c.SourceRecipeId!.Value)
+            .ToHashSetAsync();
+        return recipes.Select(r => Map(r, publicIds.Contains(r.Id)));
     }
 
     [HttpGet("{id:int}")]
@@ -40,7 +45,9 @@ public class RecipesController : ControllerBase
         var r = await _db.Recipes
             .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
             .FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
-        return r == null ? NotFound() : Map(r);
+        if (r == null) return NotFound();
+        var isPublic = await _db.CatalogRecipes.AnyAsync(c => c.SourceRecipeId == id);
+        return Map(r, isPublic);
     }
 
     [HttpPost]
@@ -91,6 +98,66 @@ public class RecipesController : ControllerBase
         return NoContent();
     }
 
+    // ---------- Publicér til fælles inspirationsside (community-deling) ----------
+    /// <summary>
+    /// Gør opskriften offentlig: lægger et SNAPSHOT ind i inspirations-kataloget,
+    /// synligt for alle husstande. Gen-publicering opdaterer snapshottet.
+    /// </summary>
+    [HttpPost("{id:int}/publish")]
+    public async Task<IActionResult> Publish(int id)
+    {
+        var hid = User.GetHouseholdId();
+        var r = await _db.Recipes
+            .Include(x => x.Ingredients).ThenInclude(ri => ri.Ingredient)
+            .FirstOrDefaultAsync(x => x.Id == id && x.HouseholdId == hid);
+        if (r == null) return NotFound();
+
+        var existing = await _db.CatalogRecipes
+            .Include(c => c.Ingredients)
+            .FirstOrDefaultAsync(c => c.SourceRecipeId == id);
+
+        if (existing == null)
+        {
+            existing = new CatalogRecipe { SourceHouseholdId = hid, SourceRecipeId = id };
+            _db.CatalogRecipes.Add(existing);
+        }
+        else
+        {
+            _db.CatalogRecipeIngredients.RemoveRange(existing.Ingredients);
+            existing.Ingredients.Clear();
+        }
+
+        existing.Title = r.Name;
+        existing.Note = r.Note;
+        existing.Servings = r.Servings;
+        foreach (var ri in r.Ingredients)
+        {
+            existing.Ingredients.Add(new CatalogRecipeIngredient
+            {
+                Name = ri.Ingredient.Name,
+                Quantity = ri.Quantity,
+                Unit = ri.Unit
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Fjern opskriften fra inspirationssiden igen (privat).</summary>
+    [HttpDelete("{id:int}/publish")]
+    public async Task<IActionResult> Unpublish(int id)
+    {
+        var hid = User.GetHouseholdId();
+        // Kun ens egen publicering kan fjernes.
+        var entry = await _db.CatalogRecipes
+            .FirstOrDefaultAsync(c => c.SourceRecipeId == id && c.SourceHouseholdId == hid);
+        if (entry == null) return NotFound();
+        _db.CatalogRecipes.Remove(entry);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // Oversætter input-linjer til RecipeIngredient og sikrer normaliserede ingredienser.
     private async Task ApplyLines(Recipe r, List<IngredientLineInputDto> lines)
     {
@@ -107,9 +174,10 @@ public class RecipesController : ControllerBase
         }
     }
 
-    private static RecipeDto Map(Recipe r) => new(
+    private static RecipeDto Map(Recipe r, bool isPublic = false) => new(
         r.Id, r.Name, r.Note, r.Servings,
         r.Ingredients.Select(ri => new IngredientLineDto(
             ri.Id, ri.IngredientId, ri.Ingredient.Name, ri.Ingredient.Category?.Name, ri.Quantity, ri.Unit))
-            .OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList());
+            .OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList(),
+        isPublic);
 }

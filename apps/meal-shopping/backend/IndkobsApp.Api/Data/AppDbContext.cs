@@ -160,6 +160,11 @@ public class AppDbContext : DbContext
             e.Property(x => x.Title).IsRequired().HasMaxLength(150);
             e.Property(x => x.Note).HasMaxLength(1000);
             e.Property(x => x.Tags).HasMaxLength(300);
+            // Community-publicerede opskrifter: fjernes automatisk hvis kilde-husstanden
+            // eller kilde-opskriften slettes (snapshot følger kilden ud).
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.SourceHouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Recipe>().WithMany().HasForeignKey(x => x.SourceRecipeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.SourceRecipeId).IsUnique(); // én katalog-kopi pr. kilde-opskrift
         });
 
         b.Entity<CatalogRecipeIngredient>(e =>

@@ -15,7 +15,8 @@ public record IngredientLineInputDto(int? IngredientId, string IngredientName, d
 public record IngredientLineDto(int Id, int IngredientId, string IngredientName, string? CategoryName, decimal Quantity, Unit Unit);
 
 // ---------- Retter ----------
-public record RecipeDto(int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients);
+// IsPublic = opskriften er publiceret til den fælles inspirationsside.
+public record RecipeDto(int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients, bool IsPublic = false);
 public record RecipeUpsertDto(string Name, string? Note, int Servings, List<IngredientLineInputDto> Ingredients);
 
 // ---------- Varegrupper ----------
@@ -71,7 +72,8 @@ public record HouseholdDto(int Id, string Name, string Email);
 
 // ---------- Inspiration / katalog ----------
 public record CatalogLineDto(string Name, decimal Quantity, Unit Unit);
-public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings, List<string> Tags, List<CatalogLineDto> Ingredients);
+// SharedBy = navnet på husstanden der har delt opskriften (null for kuraterede).
+public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings, List<string> Tags, List<CatalogLineDto> Ingredients, string? SharedBy = null);
 // Adoptér en katalog-opskrift: kopiér til egne opskrifter og læg evt. på en uge med det samme.
 public record AdoptCatalogRecipeDto(int? WeekId, int? Servings, int? DayOfWeek);
 public record AdoptResultDto(int RecipeId, string RecipeName, int? WeekId);

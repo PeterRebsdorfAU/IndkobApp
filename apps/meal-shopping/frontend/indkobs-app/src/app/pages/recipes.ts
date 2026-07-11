@@ -25,7 +25,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
           <div class="card">
             <div class="spread">
               <div class="grow">
-                <h3>{{ r.name }}</h3>
+                <h3>{{ r.name }} @if (r.isPublic) { <span class="badge">🌍 offentlig</span> }</h3>
                 <div class="muted">{{ r.servings }} pers. · {{ r.ingredients.length }} ingredienser</div>
               </div>
               <div class="row">
@@ -37,6 +37,13 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
             <div class="row-wrap" style="margin-top:.5rem">
               @for (i of r.ingredients; track i.id) {
                 <span class="pill">{{ i.ingredientName }} {{ i.quantity }} {{ label(i.unit) }}</span>
+              }
+            </div>
+            <div style="margin-top:.5rem">
+              @if (!r.isPublic) {
+                <button class="small" (click)="publish(r)">🌍 Del på Inspiration</button>
+              } @else {
+                <button class="small" (click)="unpublish(r)">Fjern fra Inspiration</button>
               }
             </div>
           </div>
@@ -89,6 +96,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
               <h3>{{ c.title }}</h3>
               <div class="muted">{{ c.servings }} pers.
                 @for (t of c.tags; track t) { · <span>{{ t }}</span> }
+                @if (c.sharedBy) { · <span>delt af {{ c.sharedBy }}</span> }
               </div>
             </div>
             <button class="primary small" (click)="adopt(c)" [disabled]="adopting() === c.id">
@@ -204,5 +212,22 @@ export class RecipesPage implements OnInit {
   remove(r: Recipe) {
     if (!confirm(`Slet "${r.name}"?`)) return;
     this.api.deleteRecipe(r.id).subscribe(() => this.load());
+  }
+
+  // Publicér/fjern fra den fælles inspirationsside (snapshot — gen-publicér for at opdatere).
+  publish(r: Recipe) {
+    if (!confirm(`Del "${r.name}" på Inspiration, så ALLE husstande kan se og bruge den?`)) return;
+    this.api.publishRecipe(r.id).subscribe(() => {
+      this.load();
+      this.api.getCatalog().subscribe(c => this.catalog.set(c));
+    });
+  }
+
+  unpublish(r: Recipe) {
+    if (!confirm(`Fjern "${r.name}" fra Inspiration?`)) return;
+    this.api.unpublishRecipe(r.id).subscribe(() => {
+      this.load();
+      this.api.getCatalog().subscribe(c => this.catalog.set(c));
+    });
   }
 }
