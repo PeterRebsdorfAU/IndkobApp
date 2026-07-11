@@ -138,4 +138,7 @@ Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis 
 - **Ejer:** retter, ugeplan, indkøbsliste-generering + aggregering, enhedslogik, (pt.) husstands-login.
 - **Ejer IKKE:** hvad man har hjemme (→ Køkkenlager), priser/butiksvalg (→ Pris), indkøbs-udførelse (→ Shopper).
 - **Fremtidige integrationer:** spørg Køkkenlageret for at trække "haves" fra listen; udstil skal-købes-listen
-  til Shopper/Pris; migrér `Ingredient` mod et fælles Vare-katalog. Se [`ECOSYSTEM.md`](ECOSYSTEM.md).
+  til Shopper/Pris; migrér `Ingredient` mod et fælles Vare-katalog. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md).
+- **Planlagt feature — Inspiration/opdagelse:** en side med et bibliotek af opskrifter; "tilføj" kopierer
+  opskriften til husstandens egne + lægger den på en uge (→ indkøbslisten). Bygger på eksisterende
+  `Recipe`/`WeekRecipe`-model. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md) §4.8.
