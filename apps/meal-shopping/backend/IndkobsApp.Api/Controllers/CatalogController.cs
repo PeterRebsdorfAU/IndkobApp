@@ -33,11 +33,19 @@ public class CatalogController : ControllerBase
             .OrderBy(r => r.Title)
             .ToListAsync();
 
+        // Navne på husstande der har delt opskrifter (vises som "delt af X").
+        var householdIds = recipes.Where(r => r.SourceHouseholdId != null)
+            .Select(r => r.SourceHouseholdId!.Value).Distinct().ToList();
+        var names = await _db.Households
+            .Where(h => householdIds.Contains(h.Id))
+            .ToDictionaryAsync(h => h.Id, h => h.Name);
+
         return recipes.Select(r => new CatalogRecipeDto(
             r.Id, r.Title, r.Note, r.Servings,
             (r.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             r.Ingredients.Select(i => new CatalogLineDto(i.Name, i.Quantity, i.Unit))
-                .OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList()));
+                .OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+            r.SourceHouseholdId is int shid ? names.GetValueOrDefault(shid) : null));
     }
 
     /// <summary>

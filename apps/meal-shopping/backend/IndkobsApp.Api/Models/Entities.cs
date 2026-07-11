@@ -178,6 +178,14 @@ public class CatalogRecipe
     /// <summary>Komma-separerede tags til filtrering (fx "hurtig,vegetar").</summary>
     public string? Tags { get; set; }
 
+    /// <summary>
+    /// Sat hvis opskriften er PUBLICERET af en husstand (community-deling) — null for
+    /// kuraterede opskrifter. Publicering er et snapshot: kilden kan gen-publicere for
+    /// at opdatere. Slettes kilde-opskriften/husstanden, fjernes katalog-kopien.
+    /// </summary>
+    public int? SourceHouseholdId { get; set; }
+    public int? SourceRecipeId { get; set; }
+
     public List<CatalogRecipeIngredient> Ingredients { get; set; } = new();
 }
 

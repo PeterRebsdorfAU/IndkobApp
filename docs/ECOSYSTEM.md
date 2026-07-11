@@ -74,7 +74,7 @@ flowchart TD
 | System | Rolle | Status | Placering |
 |---|---|---|---|
 | **Madplan & Indkøb** | Retter, ugeplan, aggregeret indkøbsliste | ✅ I drift | `apps/meal-shopping/` · indkobapp-web.onrender.com |
-| **Inspiration / Opskrifts-katalog** | Bladr i opskrifter → "Tilføj" → egne opskrifter + uge/liste | ✅ Bygget (modul i meal-shopping) | `apps/meal-shopping/` (Retter → ✨ Inspiration) |
+| **Inspiration / Opskrifts-katalog** | Bladr i opskrifter → "Tilføj" → egne opskrifter + uge/liste. Husstande kan **publicere egne opskrifter** til siden (community-pulje) | ✅ Bygget (modul i meal-shopping) | `apps/meal-shopping/` (Retter → ✨ Inspiration) |
 | **Køkkenlager (Pantry)** | Hvad har husstanden hjemme; listen viser kun det der mangler | ✅ Bygget (modul i meal-shopping; kan udskilles senere) | `apps/meal-shopping/` (Lager-fanen) |
 | **Indkøbs-delegering (Shopper)** | Del listen via link uden login; modtager krydser af | ✅ Bygget, let udgave (modul i meal-shopping) | `apps/meal-shopping/` (`/del/<token>`) |
 | **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | 🔵 Foreslået | `apps/price-optimizer/` |
@@ -186,10 +186,12 @@ flowchart TD
   - **UI + "tilføj"-flowet** hører til **Madplan-appen** (den ejer opskrifter, uger og indkøbslisten).
   - **Selve kataloget af inspirations-opskrifter** er en **datakilde** — kandidat til et lille delt
     **Opskrifts-katalog** (analogt til Vare-kataloget), så det kan genbruges/vokse uafhængigt.
-- **Hvor kommer opskrifterne fra? (åben beslutning — vigtig):**
-  - **Kurateret sæt:** en redaktionel/seedet samling I selv fylder på. Enklest, fuld kontrol.
-  - **Delt/community-pulje:** husstande kan (valgfrit) dele opskrifter til en fælles, *offentlig* pulje
-    — adskilt fra husstandens private data (husk isolationen: privat forbliver privat).
+- **Hvor kommer opskrifterne fra? (✅ besluttet & bygget: kurateret + community):**
+  - **Kurateret sæt:** ✅ bygget — seedet samling (10 retter) der kan udvides.
+  - **Delt/community-pulje:** ✅ bygget — en husstand kan trykke **"Del på Inspiration"** på sin egen
+    opskrift; der lægges et *snapshot* i det fælles katalog (gen-publicér = opdatér; fjern deling
+    eller slet opskriften = kopien forsvinder fra kataloget). Vises med "delt af <husstand>".
+    Privat forbliver privat — kun det publicerede snapshot er fælles.
   - **Ekstern import:** hent fra opskrift-URLs/API'er (parsing af ingredienser). Kraftfuldt, men
     kræver robust parsing + respekt for kilders ophavsret/ToS.
 - **Nøgledata (hvis eget katalog):** `CatalogRecipe { Id, Title, Note, Servings, Ingredients[], Tags[],

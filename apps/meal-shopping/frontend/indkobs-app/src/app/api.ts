@@ -83,6 +83,8 @@ export class Api {
   adoptCatalogRecipe(id: number, body: { weekId?: number | null; servings?: number | null; dayOfWeek?: number | null }) {
     return this.http.post<AdoptResult>(`${API}/catalog/recipes/${id}/adopt`, body);
   }
+  publishRecipe(id: number) { return this.http.post(`${API}/recipes/${id}/publish`, {}); }
+  unpublishRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}/publish`); }
 
   // ----- Køkkenlager -----
   getPantry(): Observable<PantryItem[]> { return this.http.get<PantryItem[]>(`${API}/pantry`); }
