@@ -42,6 +42,8 @@ public record AddWeekItemGroupDto(int ItemGroupId);
 public record AddWeekManualItemDto(int? IngredientId, string? FreeText, decimal Quantity, Unit Unit);
 
 // ---------- Indkøbsliste ----------
+// Quantity = det der SKAL KØBES (behov minus lager). OnHand* viser hvad husstanden
+// allerede har hjemme af varen (null hvis intet). Quantity 0 = fuldt dækket af lager.
 public record ShoppingLineDto(
     string LineKey,
     int? IngredientId,
@@ -50,7 +52,9 @@ public record ShoppingLineDto(
     Unit Unit,
     bool IsChecked,
     bool IsManual,
-    List<string> Sources);
+    List<string> Sources,
+    decimal? OnHandQuantity = null,
+    Unit? OnHandUnit = null);
 
 public record ShoppingCategoryGroupDto(int? CategoryId, string CategoryName, int SortOrder, List<ShoppingLineDto> Lines);
 
@@ -64,3 +68,18 @@ public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, st
 public record MeDto(int HouseholdId, string HouseholdName, string Email);
 public record CreateHouseholdDto(string Name, string Email, string Password);
 public record HouseholdDto(int Id, string Name, string Email);
+
+// ---------- Inspiration / katalog ----------
+public record CatalogLineDto(string Name, decimal Quantity, Unit Unit);
+public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings, List<string> Tags, List<CatalogLineDto> Ingredients);
+// Adoptér en katalog-opskrift: kopiér til egne opskrifter og læg evt. på en uge med det samme.
+public record AdoptCatalogRecipeDto(int? WeekId, int? Servings, int? DayOfWeek);
+public record AdoptResultDto(int RecipeId, string RecipeName, int? WeekId);
+
+// ---------- Køkkenlager (pantry) ----------
+public record PantryItemDto(int Id, int IngredientId, string IngredientName, string? CategoryName, decimal Quantity, Unit Unit);
+public record PantryUpsertDto(int? IngredientId, string? IngredientName, decimal Quantity, Unit Unit);
+public record PantryUpdateDto(decimal Quantity, Unit Unit);
+
+// ---------- Deling af indkøbsliste ----------
+public record ShareTokenDto(string Token);

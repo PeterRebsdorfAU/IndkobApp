@@ -9,6 +9,14 @@
 samlet indkøbsliste** hvor ens ingredienser lægges sammen, enheder konverteres (g↔kg, ml↔l),
 listen sorteres efter butikskategori, og hver linje kan krydses af. Flere husstande er isolerede.
 
+Derudover (bygget som afgrænsede moduler i samme app — se §10):
+- **Inspiration:** et fælles opskrifts-katalog man kan bladre i; "Tilføj" kopierer opskriften til
+  husstandens egne og lægger den evt. direkte på en uge.
+- **Køkkenlager (pantry):** husstandens "hvad har vi hjemme"; indkøbslisten viser kun det der
+  mangler (behov minus lager) med "har X hjemme"-badges.
+- **Deling:** ugens indkøbsliste kan deles via et token-link (`/del/<token>`) uden login —
+  modtageren kan se og krydse af, synkront med husstanden.
+
 ## 2. Teknologi & topologi
 - **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**
   → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `apps/meal-shopping/frontend/indkobs-app`,
@@ -75,6 +83,10 @@ erDiagram
 - **`WeekManualItem`** = løs vare (enten koblet til en `Ingredient` eller fritekst).
 - **`ShoppingListCheck`** husker afkrydsning pr. aggregeret linje via en stabil `LineKey` (se §6).
 - **`Unit`** er en enum gemt som tekst i DB (Stk, G, Kg, Ml, L, Spsk, Tsk, Daase, Pakke, Knivspids, Bundt, Fed).
+- **`CatalogRecipe`/`CatalogRecipeIngredient`** = fælles inspirations-katalog (ikke husstands-scoped).
+  Ingredienser gemmes som **navne** — mapping til master-`Ingredient` sker først ved adoption.
+- **`PantryItem`** = husstandens køkkenlager (HouseholdId, IngredientId, Quantity, Unit).
+- **`WeekShareToken`** = delings-token pr. uge (unikt; giver anonym læse/afkrydsningsadgang).
 
 ## 5. Auth-model
 - **Én login pr. husstand** (delt af husstandens medlemmer). Feltet hedder `Email` men bruges som
@@ -111,9 +123,17 @@ GET/POST/DELETE /api/weeks[/{id}]
 POST/PUT/DELETE /api/weeks/{id}/recipes[/{wrId}]
 POST/DELETE     /api/weeks/{id}/item-groups[/{wgId}]
 POST/DELETE     /api/weeks/{id}/manual-items[/{miId}]
-GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret
+GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret, MINUS lager
 PUT  /api/weeks/{id}/shopping-list/check  # sæt/fjern afkrydsning
+GET  /api/catalog/recipes                 # inspirations-katalog (fælles)
+POST /api/catalog/recipes/{id}/adopt      # kopiér til egne + læg evt. på uge {weekId?,servings?,dayOfWeek?}
+GET/POST/PUT/DELETE /api/pantry[/{id}]    # køkkenlager (husstands-scoped; POST merger forenelige enheder)
+POST/DELETE /api/weeks/{id}/share         # opret/tilbagekald delings-token
+GET  /api/share/{token}                   # ANONYM: hent delt liste
+PUT  /api/share/{token}/check             # ANONYM: kryds af på delt liste
 ```
+Indkøbslistens `ShoppingLineDto.Quantity` er **skal-købes** (behov − lager, aldrig negativ);
+`OnHandQuantity/OnHandUnit` viser lagerbeholdningen. Fritekst-varer matches ikke mod lager.
 
 ## 8. Konfiguration & hemmeligheder
 Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyrer `appsettings.json`):
@@ -136,9 +156,12 @@ Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis 
 
 ## 10. Denne apps ansvarsgrænse (ift. økosystemet)
 - **Ejer:** retter, ugeplan, indkøbsliste-generering + aggregering, enhedslogik, (pt.) husstands-login.
-- **Ejer IKKE:** hvad man har hjemme (→ Køkkenlager), priser/butiksvalg (→ Pris), indkøbs-udførelse (→ Shopper).
-- **Fremtidige integrationer:** spørg Køkkenlageret for at trække "haves" fra listen; udstil skal-købes-listen
-  til Shopper/Pris; migrér `Ingredient` mod et fælles Vare-katalog. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md).
-- **Planlagt feature — Inspiration/opdagelse:** en side med et bibliotek af opskrifter; "tilføj" kopierer
-  opskriften til husstandens egne + lægger den på en uge (→ indkøbslisten). Bygger på eksisterende
-  `Recipe`/`WeekRecipe`-model. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md) §4.8.
+- **Indeholder desuden (pragmatisk beslutning, jul 2026):** **Inspiration** (§4.8 i ECOSYSTEM),
+  **Køkkenlager** og **liste-deling** er implementeret som *afgrænsede moduler i denne app*
+  (egne tabeller/controllers/sider) i stedet for separate services — det gav værdien uden ekstra
+  Render-services/cold starts. **Udskilningssti:** Pantry-modulet (PantryItem + PantryController +
+  pantry-siden) og Share-modulet er bevidst selvstændige og kan løftes ud i egne services senere,
+  jf. ECOSYSTEM §4.2/§4.4 — kontrakterne (ingrediens-id, mængde+enhed) er allerede de fælles.
+- **Ejer IKKE:** priser/butiksvalg (→ Pris-systemet, fremtidigt).
+- **Fremtidige integrationer:** migrér `Ingredient` mod et fælles Vare-katalog; udstil skal-købes-listen
+  som kontrakt. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md).

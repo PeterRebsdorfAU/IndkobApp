@@ -64,6 +64,8 @@ export interface WeekDetail {
 export interface ShoppingLine {
   lineKey: string; ingredientId: number | null; name: string;
   quantity: number; unit: Unit; isChecked: boolean; isManual: boolean; sources: string[];
+  // Køkkenlager-afstemning: quantity = det der skal KØBES; onHand = det man har hjemme.
+  onHandQuantity: number | null; onHandUnit: Unit | null;
 }
 export interface ShoppingCategoryGroup {
   categoryId: number | null; categoryName: string; sortOrder: number; lines: ShoppingLine[];
@@ -75,3 +77,20 @@ export interface ShoppingList {
 export const DAYS = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
 export interface AuthResult { token: string; expiresUtc: string; householdId: number; householdName: string; }
+
+// ---------- Inspiration / katalog ----------
+export interface CatalogLine { name: string; quantity: number; unit: Unit; }
+export interface CatalogRecipe {
+  id: number; title: string; note: string | null; servings: number;
+  tags: string[]; ingredients: CatalogLine[];
+}
+export interface AdoptResult { recipeId: number; recipeName: string; weekId: number | null; }
+
+// ---------- Køkkenlager ----------
+export interface PantryItem {
+  id: number; ingredientId: number; ingredientName: string;
+  categoryName: string | null; quantity: number; unit: Unit;
+}
+
+// ---------- Deling ----------
+export interface ShareToken { token: string; }
