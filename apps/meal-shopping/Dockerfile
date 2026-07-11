@@ -1,5 +1,5 @@
 # Multi-stage build af backend-API'et (ASP.NET Core 10) til Render.
-# Bygges fra repo-roden (dockerContext: .).
+# Bygges med Docker-context = apps/meal-shopping (COPY-stier er relative til den).
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src

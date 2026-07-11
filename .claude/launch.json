@@ -6,7 +6,7 @@
       "runtimeExecutable": "ng",
       "runtimeArgs": ["serve", "--port", "4200"],
       "port": 4200,
-      "cwd": "frontend/indkobs-app"
+      "cwd": "apps/meal-shopping/frontend/indkobs-app"
     }
   ]
 }
