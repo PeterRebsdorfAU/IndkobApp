@@ -53,6 +53,7 @@ export interface Week { id: number; year: number; weekNumber: number; }
 export interface WeekRecipe {
   id: number; recipeId: number; recipeName: string;
   baseServings: number; servings: number | null; dayOfWeek: number | null;
+  cookedUtc: string | null; // sat = markeret "lavet" (lager fratrukket)
 }
 export interface WeekItemGroup { id: number; itemGroupId: number; itemGroupName: string; }
 export interface WeekManualItem { id: number; ingredientId: number | null; name: string; quantity: number; unit: Unit; }
@@ -96,3 +97,14 @@ export interface PantryItem {
 
 // ---------- Deling ----------
 export interface ShareToken { token: string; }
+
+// ---------- Lager-kredsløb ----------
+export interface StockCheckedResult { linesStocked: number; }
+
+// ---------- Tilbud ----------
+export interface OffersStatus { configured: boolean; }
+export interface Offer {
+  heading: string; description: string | null; price: number | null;
+  store: string | null; validUntil: string | null;
+}
+export interface OfferMatch { itemName: string; offers: Offer[]; }

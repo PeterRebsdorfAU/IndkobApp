@@ -119,6 +119,12 @@ public class WeekRecipe
 
     /// <summary>Valgfri ugedag (0=mandag ... 6=søndag). Null = ikke planlagt til en bestemt dag.</summary>
     public int? DayOfWeek { get; set; }
+
+    /// <summary>
+    /// Sat når retten er markeret "lavet" — ingredienserne blev da trukket fra
+    /// køkkenlageret. Null = ikke lavet endnu.
+    /// </summary>
+    public DateTime? CookedUtc { get; set; }
 }
 
 public class WeekItemGroup

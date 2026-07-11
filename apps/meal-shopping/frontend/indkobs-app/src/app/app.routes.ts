@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'indkob', canActivate: [authGuard], loadComponent: () => import('./pages/shopping-list').then(m => m.ShoppingListPage) },
   { path: 'retter', canActivate: [authGuard], loadComponent: () => import('./pages/recipes').then(m => m.RecipesPage) },
   { path: 'lager', canActivate: [authGuard], loadComponent: () => import('./pages/pantry').then(m => m.PantryPage) },
+  { path: 'tilbud', canActivate: [authGuard], loadComponent: () => import('./pages/offers').then(m => m.OffersPage) },
   { path: 'varegrupper', canActivate: [authGuard], loadComponent: () => import('./pages/item-groups').then(m => m.ItemGroupsPage) },
   { path: 'admin', canActivate: [authGuard], loadComponent: () => import('./pages/admin').then(m => m.AdminPage) },
   { path: '**', redirectTo: 'uge' }

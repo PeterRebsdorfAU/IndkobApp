@@ -23,6 +23,11 @@ builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionStrin
 
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<ShoppingListService>();
+builder.Services.AddScoped<PantryService>();
+
+// Tilbud (Tilbudsdata.dk): valgfri integration — aktiveres når Tilbudsdata__UserId/__ApiKey er sat.
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<TilbudsdataClient>();
 
 // Auth: password-hashing + JWT-udstedelse/validering.
 builder.Services.AddSingleton<IPasswordHasher<Household>, PasswordHasher<Household>>();

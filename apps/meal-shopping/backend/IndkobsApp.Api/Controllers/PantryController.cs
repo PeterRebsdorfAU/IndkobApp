@@ -19,10 +19,12 @@ public class PantryController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IngredientService _ingredients;
-    public PantryController(AppDbContext db, IngredientService ingredients)
+    private readonly PantryService _pantry;
+    public PantryController(AppDbContext db, IngredientService ingredients, PantryService pantry)
     {
         _db = db;
         _ingredients = ingredients;
+        _pantry = pantry;
     }
 
     [HttpGet]
@@ -66,34 +68,8 @@ public class PantryController : ControllerBase
 
         if (dto.Quantity <= 0) return BadRequest("Mængden skal være større end 0.");
 
-        var family = UnitMath.FamilyOf(dto.Unit);
-        var existing = await _db.PantryItems
-            .Where(p => p.HouseholdId == hid && p.IngredientId == ing.Id)
-            .ToListAsync();
-
-        // Merge ind i eksisterende linje hvis enhederne kan lægges sammen.
-        var target = existing.FirstOrDefault(p =>
-            family == MeasureFamily.Count
-                ? p.Unit == dto.Unit
-                : UnitMath.FamilyOf(p.Unit) == family);
-
-        if (target != null)
-        {
-            if (family == MeasureFamily.Count)
-            {
-                target.Quantity += dto.Quantity;
-            }
-            else
-            {
-                var sumBase = UnitMath.ToBase(target.Quantity, target.Unit) + UnitMath.ToBase(dto.Quantity, dto.Unit);
-                (target.Quantity, target.Unit) = UnitMath.FromBase(sumBase, family);
-            }
-        }
-        else
-        {
-            target = new PantryItem { HouseholdId = hid, IngredientId = ing.Id, Quantity = dto.Quantity, Unit = dto.Unit };
-            _db.PantryItems.Add(target);
-        }
+        // Merge ind i eksisterende linje hvis enhederne kan lægges sammen (delt logik).
+        var target = await _pantry.AddOrMergeAsync(hid, ing.Id, dto.Quantity, dto.Unit);
 
         await _db.SaveChangesAsync();
         await _db.Entry(target).Reference(p => p.Ingredient).LoadAsync();

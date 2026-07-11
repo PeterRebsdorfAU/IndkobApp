@@ -16,12 +16,14 @@ public class WeeksController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IngredientService _ingredients;
     private readonly ShoppingListService _shoppingList;
+    private readonly PantryService _pantry;
 
-    public WeeksController(AppDbContext db, IngredientService ingredients, ShoppingListService shoppingList)
+    public WeeksController(AppDbContext db, IngredientService ingredients, ShoppingListService shoppingList, PantryService pantry)
     {
         _db = db;
         _ingredients = ingredients;
         _shoppingList = shoppingList;
+        _pantry = pantry;
     }
 
     // Er ugen ejet af den aktuelle husstand?
@@ -99,6 +101,50 @@ public class WeeksController : ControllerBase
         if (wr == null) return NotFound();
         wr.Servings = dto.Servings;
         wr.DayOfWeek = dto.DayOfWeek;
+        await _db.SaveChangesAsync();
+        return (await BuildDetail(id))!;
+    }
+
+    /// <summary>
+    /// Markér retten som LAVET: ingredienserne (skaleret efter portioner) trækkes
+    /// automatisk fra køkkenlageret. Kan kun gøres én gang pr. ret pr. uge.
+    /// </summary>
+    [HttpPost("{id:int}/recipes/{weekRecipeId:int}/cooked")]
+    public async Task<ActionResult<WeekDetailDto>> MarkCooked(int id, int weekRecipeId)
+    {
+        var hid = User.GetHouseholdId();
+        if (!await OwnsWeek(id)) return NotFound();
+
+        var wr = await _db.WeekRecipes
+            .Include(x => x.Recipe).ThenInclude(r => r.Ingredients)
+            .FirstOrDefaultAsync(x => x.Id == weekRecipeId && x.WeekId == id);
+        if (wr == null) return NotFound();
+        if (wr.CookedUtc != null) return Conflict("Retten er allerede markeret som lavet.");
+
+        // Samme skaleringsfaktor som indkøbslisten bruger.
+        var effective = wr.Servings ?? wr.Recipe.Servings;
+        var baseServ = wr.Recipe.Servings <= 0 ? 1 : wr.Recipe.Servings;
+        var factor = (decimal)effective / baseServ;
+
+        foreach (var ri in wr.Recipe.Ingredients)
+            await _pantry.ConsumeAsync(hid, ri.IngredientId, ri.Quantity * factor, ri.Unit);
+
+        wr.CookedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return (await BuildDetail(id))!;
+    }
+
+    /// <summary>
+    /// Fortryd "lavet"-markeringen. Bemærk: lageret føres IKKE tilbage automatisk
+    /// (vi kan ikke vide præcist hvad der blev trukket, hvis lageret var lavt).
+    /// </summary>
+    [HttpDelete("{id:int}/recipes/{weekRecipeId:int}/cooked")]
+    public async Task<ActionResult<WeekDetailDto>> UnmarkCooked(int id, int weekRecipeId)
+    {
+        if (!await OwnsWeek(id)) return NotFound();
+        var wr = await _db.WeekRecipes.FirstOrDefaultAsync(x => x.Id == weekRecipeId && x.WeekId == id);
+        if (wr == null) return NotFound();
+        wr.CookedUtc = null;
         await _db.SaveChangesAsync();
         return (await BuildDetail(id))!;
     }
@@ -213,6 +259,32 @@ public class WeeksController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Læg alle AFKRYDSEDE varer på køkkenlageret (det man har købt og båret hjem).
+    /// Naturligt idempotent: efter første tryk dækker lageret varerne, så deres
+    /// skal-købes-mængde bliver 0, og endnu et tryk tilføjer intet.
+    /// </summary>
+    [HttpPost("{id:int}/shopping-list/stock-checked")]
+    public async Task<ActionResult<StockCheckedResultDto>> StockChecked(int id)
+    {
+        var hid = User.GetHouseholdId();
+        if (!await OwnsWeek(id)) return NotFound();
+
+        var list = await _shoppingList.BuildAsync(id);
+        if (list == null) return NotFound();
+
+        var stocked = 0;
+        foreach (var line in list.Groups.SelectMany(g => g.Lines))
+        {
+            // Kun afkrydsede, ingrediens-koblede linjer med en reel købsmængde.
+            if (!line.IsChecked || line.IngredientId is not int ingId || line.Quantity <= 0) continue;
+            await _pantry.AddOrMergeAsync(hid, ingId, line.Quantity, line.Unit);
+            stocked++;
+        }
+        await _db.SaveChangesAsync();
+        return new StockCheckedResultDto(stocked);
+    }
+
     // ---------- Deling af indkøbslisten (link uden login) ----------
     /// <summary>Opret (eller genbrug) et delings-token for ugens indkøbsliste.</summary>
     [HttpPost("{id:int}/share")]
@@ -254,7 +326,7 @@ public class WeeksController : ControllerBase
         return new WeekDetailDto(
             w.Id, w.Year, w.WeekNumber,
             w.Recipes.Select(wr => new WeekRecipeDto(
-                wr.Id, wr.RecipeId, wr.Recipe.Name, wr.Recipe.Servings, wr.Servings, wr.DayOfWeek))
+                wr.Id, wr.RecipeId, wr.Recipe.Name, wr.Recipe.Servings, wr.Servings, wr.DayOfWeek, wr.CookedUtc))
                 .OrderBy(x => x.DayOfWeek ?? 99).ThenBy(x => x.RecipeName).ToList(),
             w.ItemGroups.Select(wg => new WeekItemGroupDto(wg.Id, wg.ItemGroupId, wg.ItemGroup.Name))
                 .OrderBy(x => x.ItemGroupName).ToList(),
