@@ -69,14 +69,17 @@ flowchart TD
     PRICE -->|"billigste butik(-er)"| SHOP
 ```
 
-| System | Rolle | Status | Repo/URL |
+> Alt bor i ét **monorepo** (`PeterRebsdorfAU/IndkobApp`): hver app under `apps/<navn>/`, fælles ting under `shared/`.
+
+| System | Rolle | Status | Placering |
 |---|---|---|---|
-| **Madplan & Indkøb** | Retter, ugeplan, aggregeret indkøbsliste | ✅ I drift | `PeterRebsdorfAU/IndkobApp` · indkobapp-web.onrender.com |
-| **Køkkenlager (Pantry)** | Hvad har husstanden hjemme lige nu | 🟡 Planlagt | (nyt repo) |
-| **Indkøbs-delegering (Shopper)** | Send/deleger listen; en anden handler | 🟡 Planlagt | (nyt repo) |
-| **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | 🔵 Foreslået | (nyt repo) |
-| **Vare-katalog** | Kanonisk vare-identitet + SKU/stregkode-mapping | 🔵 Foreslået (fælles) | (nyt repo) |
-| **Identitet & Husstand** | Fælles login/husstand på tværs | 🔵 Foreslået (udskilles fra Madplan) | (nyt repo) |
+| **Madplan & Indkøb** | Retter, ugeplan, aggregeret indkøbsliste | ✅ I drift | `apps/meal-shopping/` · indkobapp-web.onrender.com |
+| **Inspiration / Opskrifts-katalog** | Bladr i mange opskrifter → vælg → auto-tilføj til liste + egne opskrifter | 🟡 Planlagt | `apps/meal-shopping/` (feature) + evt. `shared/recipe-catalog/` |
+| **Køkkenlager (Pantry)** | Hvad har husstanden hjemme lige nu | 🟡 Planlagt | `apps/pantry/` |
+| **Indkøbs-delegering (Shopper)** | Send/deleger listen; en anden handler | 🟡 Planlagt | `apps/shopper/` |
+| **Pris- & Butiks-optimering** | Hvor er det billigst; hvilken butik | 🔵 Foreslået | `apps/price-optimizer/` |
+| **Vare-katalog** | Kanonisk vare-identitet + SKU/stregkode-mapping | 🔵 Foreslået (fælles) | `shared/product-catalog/` |
+| **Identitet & Husstand** | Fælles login/husstand på tværs | 🔵 Foreslået (udskilles fra Madplan) | `shared/` el. `apps/identity/` |
 
 ---
 
@@ -93,6 +96,8 @@ flowchart TD
   - *Skal* kunne spørge **Køkkenlageret**: "af denne skal-liste, hvad har vi allerede?" → trække fra.
   - *Skal* kunne udstille sin **skal-købes-liste** (kanoniske vare-id + mængde + enhed) til Shopper/Pris.
   - *Bør* slå ingrediens-navne op i **Vare-kataloget** i stedet for sin egen `Ingredient`-tabel (migreres over tid).
+- **Planlagt feature — Inspiration/opdagelse** (se §4.8): en side der viser *mange* opskrifter at bladre i;
+  vælg én → den kopieres til husstandens egne opskrifter **og** tilføjes til en uges plan/indkøbsliste i ét klik.
 
 ### 4.2 Køkkenlager / Pantry  *(planlagt)*
 - **Mission:** Være husstandens sandhed om "hvad har vi hjemme lige nu", nemt at holde ajour.
@@ -163,6 +168,31 @@ flowchart TD
 - **Beslutning at tage:** Byg selv (som nu) vs. brug en gratis identitets-udbyder. For privat brug er
   "byg selv, del JWT-nøgle" enklest at starte med.
 
+### 4.8 Inspiration / Opskrifts-katalog  *(planlagt feature + foreslået datakilde)*
+- **Mission:** Give brugeren en **"Inspiration"-side** med *mange* opskrifter at bladre i og blive
+  inspireret af — og gøre det ét-kliks-nemt at tage en opskrift i brug.
+- **Brugerflow:**
+  1. Bruger åbner Inspiration → ser et bibliotek af opskrifter (billede, titel, tid, tags, portioner).
+  2. Filtrér/søg (fx "hurtig", "vegetar", "bruger kylling", "det vi har hjemme").
+  3. Tryk **"Tilføj"** på en opskrift → den (a) **kopieres til husstandens egne opskrifter** og
+     (b) **tilføjes til en valgt uge**, så ingredienserne straks lander på indkøbslisten (via den
+     eksisterende aggregering). Ét klik, ingen genindtastning.
+- **Ansvar / hvor bor det:**
+  - **UI + "tilføj"-flowet** hører til **Madplan-appen** (den ejer opskrifter, uger og indkøbslisten).
+  - **Selve kataloget af inspirations-opskrifter** er en **datakilde** — kandidat til et lille delt
+    **Opskrifts-katalog** (analogt til Vare-kataloget), så det kan genbruges/vokse uafhængigt.
+- **Hvor kommer opskrifterne fra? (åben beslutning — vigtig):**
+  - **Kurateret sæt:** en redaktionel/seedet samling I selv fylder på. Enklest, fuld kontrol.
+  - **Delt/community-pulje:** husstande kan (valgfrit) dele opskrifter til en fælles, *offentlig* pulje
+    — adskilt fra husstandens private data (husk isolationen: privat forbliver privat).
+  - **Ekstern import:** hent fra opskrift-URLs/API'er (parsing af ingredienser). Kraftfuldt, men
+    kræver robust parsing + respekt for kilders ophavsret/ToS.
+- **Nøgledata (hvis eget katalog):** `CatalogRecipe { Id, Title, Note, Servings, Ingredients[], Tags[],
+  ImageUrl?, Source? }`. Ingredienslinjer refererer **kanoniske vare-id** (§4.6), så "tilføj" mapper
+  rent over i husstandens opskrift + liste.
+- **Synergi:** Kombineret med **Køkkenlageret** kan Inspiration prioritere "opskrifter du (næsten) kan
+  lave med det, du har hjemme" → mindre spild, mindre indkøb.
+
 ---
 
 ## 5. Foreslåede yderligere systemer / features (idébank)
@@ -199,6 +229,9 @@ flowchart TD
 ## 7. Faseinddelt køreplan (forslag)
 
 - **Fase 1 (nu):** Madplan & Indkøb i drift med login pr. husstand. ✅
+- **Fase 1.5 (lav afhængighed — kan tages tidligt):** **Inspiration/opdagelse** (§4.8) med et
+  kurateret opskrifts-sæt + "tilføj til uge/liste"-flow. Kræver hverken Pantry eller Vare-katalog
+  for en første udgave (kan starte inde i Madplan-appen).
 - **Fase 2:** Køkkenlager (Pantry) som selvstændig service + afstemning "køb kontra haves" i Madplan.
   Kræver første version af **kanonisk vare-id** (kan starte som en delt tabel/kontrakt).
 - **Fase 3:** Indkøbs-delegering (start med simpelt delings-link + afkrydsning).
@@ -209,7 +242,7 @@ flowchart TD
 
 ## 8. Åbne beslutninger at bekræfte
 
-1. **Topologi:** Ét repo pr. system (anbefalet, løs kobling) vs. mono-repo? *(Antaget: ét repo pr. system.)*
+1. **Topologi:** ✅ **Besluttet: monorepo** — hver app under `apps/<navn>/`, fælles under `shared/`.
 2. **Vare-identitet:** Hvornår indfører vi det fælles Vare-katalog? Det er en forudsætning for
    Pantry-afstemning og Pris — jo før en simpel udgave, jo bedre.
 3. **Identitet:** Beholde login i Madplan indtil videre, eller udskille SSO allerede i Fase 2?
