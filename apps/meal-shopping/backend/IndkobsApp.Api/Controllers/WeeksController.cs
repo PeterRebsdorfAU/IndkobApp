@@ -17,13 +17,16 @@ public class WeeksController : ControllerBase
     private readonly IngredientService _ingredients;
     private readonly ShoppingListService _shoppingList;
     private readonly PantryService _pantry;
+    private readonly WeekCleanupService _cleanup;
 
-    public WeeksController(AppDbContext db, IngredientService ingredients, ShoppingListService shoppingList, PantryService pantry)
+    public WeeksController(AppDbContext db, IngredientService ingredients, ShoppingListService shoppingList,
+        PantryService pantry, WeekCleanupService cleanup)
     {
         _db = db;
         _ingredients = ingredients;
         _shoppingList = shoppingList;
         _pantry = pantry;
+        _cleanup = cleanup;
     }
 
     // Er ugen ejet af den aktuelle husstand?
@@ -33,6 +36,9 @@ public class WeeksController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<WeekDto>> GetAll()
     {
+        // Opportunistisk oprydning af gamle uger (throttlet til hver 6. time).
+        await _cleanup.RunIfDueAsync();
+
         var hid = User.GetHouseholdId();
         return await _db.Weeks.Where(w => w.HouseholdId == hid)
             .OrderByDescending(w => w.Year).ThenByDescending(w => w.WeekNumber)

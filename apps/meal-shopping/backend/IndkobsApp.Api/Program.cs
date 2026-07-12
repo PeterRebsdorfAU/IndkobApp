@@ -24,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionStrin
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<ShoppingListService>();
 builder.Services.AddScoped<PantryService>();
+builder.Services.AddScoped<WeekCleanupService>();
 
 // Auth: password-hashing + JWT-udstedelse/validering.
 builder.Services.AddSingleton<IPasswordHasher<Household>, PasswordHasher<Household>>();
@@ -70,6 +71,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(db, hasher, cfg);
     await DbSeeder.SeedCatalogAsync(db); // inspirations-katalog (kører også på eksisterende DB)
+    await scope.ServiceProvider.GetRequiredService<WeekCleanupService>().RunAsync(); // slet uger > 5 uger gamle
 }
 
 if (app.Environment.IsDevelopment())
