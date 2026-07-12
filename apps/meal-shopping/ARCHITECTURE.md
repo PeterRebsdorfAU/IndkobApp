@@ -154,7 +154,10 @@ Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyr
 - `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
   Repoet er offentligt, så prod-nøglerne må aldrig committes.
 
-Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis der ingen husstand findes).
+Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis der ingen husstand findes)
++ **uge-oprydning** (`WeekCleanupService`): uger ældre end `Cleanup:WeekRetentionWeeks` (default 5)
+slettes automatisk på tværs af husstande — kaskaderer til ugens indhold/checks/delings-tokens, men rører
+ikke opskrifter/lager. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt værdien til 0 for at slå fra.
 
 ## 9. Kendte forbehold / gotchas
 - **Gratis Render:** backend "sover" efter inaktivitet → ~30-60 sek cold start på første kald.
