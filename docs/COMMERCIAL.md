@@ -35,9 +35,10 @@ Behold **monorepoet**. Forbruger-appen er `apps/meal-shopping`; butiks-appen bli
 - `Order` med status-flow: **Modtaget → Pakkes → Klar → Afhentet** (+ evt. Annulleret).
 - Forbruger *sender* ordren (snapshot af indkøbslisten); butik *pakker og opdaterer status*;
   forbruger ser status live.
-- En **demo af dette flow er nu bygget ind i `apps/meal-shopping`** (se `ARCHITECTURE.md` → Ordrer),
-  så man kan vise et supermarked konceptet uden en separat app endnu. Den "rigtige" butiks-app
-  (`apps/supermarket`) bygges når konceptet er valideret.
+- En **demo af dette flow er bygget som to adskilte apps**: forbruger-appen (`apps/meal-shopping`)
+  sender ordren; butiks-appen (`apps/supermarket`, eget website) pakker og melder klar. Begge deler
+  samme backend. Nok til at vise et supermarked konceptet; modnes til produktion (rigtige butikskonti,
+  roller, notifikationer, betaling) når det er valideret.
 
 ## 4. Fra hobby til produkt — hvad der mangler
 Nuværende stak er solidt hobby-niveau. Kommercielt kræver det (gør just-in-time, ikke alt på én gang):

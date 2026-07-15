@@ -26,7 +26,7 @@ services:
       - key: Admin__Key
         generateValue: true
 
-  # ---------- Frontend (Angular PWA, statisk) ----------
+  # ---------- Forbruger-app (Angular PWA, statisk) ----------
   - type: web
     name: indkobapp-web
     runtime: static
@@ -35,6 +35,24 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: dist/indkobs-app/browser
     # SPA-fallback: alle ruter serveres af index.html (Angular router håndterer resten)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
+  # ---------- Butiks-app (selvstændigt website, statisk) ----------
+  # Taler med SAMME backend (indkobapp-api) via /api/store/*. Egen URL.
+  - type: web
+    name: indkobapp-butik
+    runtime: static
+    plan: free
+    rootDir: apps/supermarket
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist/supermarket/browser
     routes:
       - type: rewrite
         source: /*

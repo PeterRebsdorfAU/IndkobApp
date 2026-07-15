@@ -1,0 +1,50 @@
+/* Butiks-app — enkel, touch-venlig styling (deler visuelt sprog med forbruger-appen). */
+:root {
+  --bg: #f4f6f8; --surface: #fff; --border: #e2e6ea; --text: #1f2933; --muted: #6b7785;
+  --primary: #2f6f4f; --primary-dark: #245840; --danger: #c0392b; --accent: #f0f4f1;
+  --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
+h1 { font-size: 1.4rem; margin: .2rem 0 1rem; }
+h3 { font-size: 1rem; margin: 0; }
+.muted { color: var(--muted); font-size: .85rem; }
+.cat { font-size: .72rem; }
+.note { margin-top: .3rem; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 1rem; margin-bottom: .75rem;
+}
+.row { display: flex; gap: .5rem; align-items: center; }
+.spread { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.grow { flex: 1 1 auto; min-width: 0; }
+.field { margin-bottom: .6rem; }
+label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .2rem; }
+input, select {
+  width: 100%; padding: .6rem .7rem; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 1rem; background: #fff; color: var(--text);
+}
+
+button {
+  font: inherit; cursor: pointer; border: none; border-radius: 10px;
+  padding: .6rem .9rem; background: var(--accent); color: var(--text); min-height: 44px;
+}
+button.primary { background: var(--primary); color: #fff; }
+button.small { min-height: 36px; padding: .35rem .6rem; font-size: .9rem; }
+button:disabled { opacity: .5; cursor: default; }
+button.link { background: none; color: var(--primary); padding: 0 .3rem; min-height: auto; font-size: .72rem; text-decoration: underline; }
+
+.list-item { display: flex; align-items: center; gap: .5rem; padding: .55rem 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.list-item:last-child { border-bottom: none; }
+.done { text-decoration: line-through; color: var(--muted); }
+.check { width: 22px; height: 22px; accent-color: var(--primary); }
+
+.badge { display: inline-block; background: var(--accent); color: var(--primary-dark); border-radius: 999px; padding: .1rem .55rem; font-size: .75rem; }
+.badge.ready { background: var(--primary); color: #fff; }
+.empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+.error { color: var(--danger); font-size: .85rem; margin: .3rem 0; }

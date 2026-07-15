@@ -19,10 +19,11 @@ Derudover (bygget som afgrænsede moduler i samme app — se §10):
 - **Hjem (husstandens opgaver):** engangs-to-dos + gentagne pligter/vedligehold i én motor
   (`HouseholdTask`): interval ruller forfaldsdato frem ved "gjort", valgfri tur-rotation
   (komma-separerede navne), badge i navigationen med forfaldne + åbne.
-- **Ordrer (butiks-demo):** husstanden sender ugens indkøbsliste som en `Order` til en butik;
-  butikken (via `/butik`, adgang med butiks-nøgle — ikke husstands-login) pakker linjerne og
-  markerer klar (`Modtaget → Pakkes → Klar → Afhentet`); husstanden ser status under "Mine ordrer".
-  DEMO til at vise et supermarked konceptet — modnes senere til `apps/supermarket`. Se `../../docs/COMMERCIAL.md`.
+- **Ordrer (butiks-flow):** husstanden sender ugens indkøbsliste som en `Order` til en butik og
+  ser status under "Mine ordrer" (`Modtaget → Pakkes → Klar → Afhentet`). **Butiks-siden bor i en
+  SEPARAT app: `apps/supermarket`** (eget website, egen URL), der taler med denne backend via
+  `/api/store/*` med butiks-nøgle (ikke husstands-login). Denne forbruger-app har altså KUN
+  afsender-/status-delen. Se `../../docs/COMMERCIAL.md`.
 
 ## 2. Teknologi & topologi
 - **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**

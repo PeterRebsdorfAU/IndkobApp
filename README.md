@@ -25,10 +25,9 @@ household-ecosystem/
 ## Apps
 | App | Hvad | Status | Docs |
 |---|---|---|---|
-| **meal-shopping** | Vælg retter → automatisk, aggregeret indkøbsliste | ✅ I drift | [README](apps/meal-shopping/README.md) · [ARCHITECTURE](apps/meal-shopping/ARCHITECTURE.md) |
-| pantry | Køkkenlager: hvad har vi hjemme; trækkes fra listen | 🟡 Planlagt | — |
-| shopper | Send/deleger indkøbslisten til en anden | 🟡 Planlagt | — |
-| price-optimizer | Hvor er det billigst / hvilken butik | 🔵 Foreslået | — |
+| **meal-shopping** | Forbruger-app: retter → aggregeret indkøbsliste, lager, hjem, ordrer | ✅ I drift | [README](apps/meal-shopping/README.md) · [ARCHITECTURE](apps/meal-shopping/ARCHITECTURE.md) |
+| **supermarket** | Butiks-app: modtag ordrer, pak, meld klar (deler backend) | 🟡 Demo | [README](apps/supermarket/README.md) |
+| pantry / shopper / price-optimizer | (indbygget som moduler i meal-shopping indtil videre) | — | [ECOSYSTEM](docs/ECOSYSTEM.md) |
 
 ## Principper (kort)
 - **Husstand = tenant.** Data isoleret pr. husstand.
