@@ -1,0 +1,15 @@
+/* Hjælp-link (?) i topbjælken */
+.help-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+  line-height: 1;
+}
+.help-link:hover { color: var(--primary); border-color: var(--primary); }

@@ -3,6 +3,7 @@
     <span class="brand">🛒 Madplan</span>
     <span class="grow"></span>
     @if (auth.householdName()) { <span class="muted">{{ auth.householdName() }}</span> }
+    <a routerLink="/hjaelp" class="help-link" title="Hjælp &amp; FAQ" aria-label="Hjælp og FAQ">?</a>
     <button class="small" (click)="auth.logout()">Log ud</button>
   </header>
 }

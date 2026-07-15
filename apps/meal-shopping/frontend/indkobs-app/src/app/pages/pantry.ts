@@ -2,10 +2,11 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../api';
 import { PantryItem, Ingredient, Unit, UNITS, unitLabel } from '../models';
+import { EmptyState } from '../shared/empty-state';
 
 @Component({
   selector: 'page-pantry',
-  imports: [FormsModule],
+  imports: [FormsModule, EmptyState],
   template: `
     <h1>Køkkenlager</h1>
     <p class="muted">Hvad I har hjemme. Indkøbslisten trækker det automatisk fra, så I kun køber det I mangler.</p>
@@ -45,7 +46,8 @@ import { PantryItem, Ingredient, Unit, UNITS, unitLabel } from '../models';
         }
       </div>
     } @empty {
-      <div class="empty">Lageret er tomt. Tilføj det I har hjemme, så bliver indkøbslisten klogere.</div>
+      <app-empty-state icon="🥫" title="Lageret er tomt"
+        text="Tilføj det I har hjemme herover. Så trækker indkøbslisten det fra, og I køber kun det, der mangler." />
     }
   `
 })

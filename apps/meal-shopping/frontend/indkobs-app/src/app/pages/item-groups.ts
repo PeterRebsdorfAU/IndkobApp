@@ -3,10 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { Api } from '../api';
 import { ItemGroup, ItemGroupUpsert, Ingredient, IngredientLineInput, unitLabel } from '../models';
 import { IngredientLinesEditor } from '../shared/ingredient-lines';
+import { EmptyState } from '../shared/empty-state';
 
 @Component({
   selector: 'page-item-groups',
-  imports: [FormsModule, IngredientLinesEditor],
+  imports: [FormsModule, IngredientLinesEditor, EmptyState],
   template: `
     <h1>Varegrupper</h1>
     <p class="muted">Faste sæt varer der ikke er retter (fx Frokost, Toilet, Rengøring).</p>
@@ -33,7 +34,10 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
           </div>
         </div>
       } @empty {
-        <div class="empty">Ingen varegrupper endnu.</div>
+        <app-empty-state icon="📦" title="Ingen varegrupper endnu"
+          text="Lav faste sæt af varer I køber igen og igen — fx Morgenmad eller Rengøring — og læg dem på ugen med ét tryk.">
+          <button class="primary" (click)="startNew()">+ Ny varegruppe</button>
+        </app-empty-state>
       }
     }
 
