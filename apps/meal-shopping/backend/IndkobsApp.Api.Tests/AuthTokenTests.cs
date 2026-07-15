@@ -36,9 +36,9 @@ public class AuthTokenTests
         var (token, expires) = new TokenService(Config(ValidKey)).Create(TestHousehold());
 
         Assert.False(string.IsNullOrWhiteSpace(token));
-        // Levetid ~60 dage frem.
-        Assert.True(expires > DateTime.UtcNow.AddDays(59));
-        Assert.True(expires < DateTime.UtcNow.AddDays(61));
+        // Create() = kortlivet access-token (T4-standard ~12 t; refresh-token er separat).
+        Assert.True(expires > DateTime.UtcNow.AddHours(11));
+        Assert.True(expires < DateTime.UtcNow.AddHours(13));
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
         Assert.Equal("42", jwt.Claims.First(c => c.Type == TokenService.HouseholdIdClaim).Value);
