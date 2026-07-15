@@ -5,6 +5,9 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login').then(m => m.LoginPage) },
   // Offentlig delt indkøbsliste (via token-link) — bevidst UDEN auth-guard.
   { path: 'del/:token', loadComponent: () => import('./pages/shared-list').then(m => m.SharedListPage) },
+  // Juridiske sider — bevidst UDEN auth-guard, så de kan tilgås før login/signup.
+  { path: 'privatliv', loadComponent: () => import('./pages/legal-privacy').then(m => m.LegalPrivacyPage) },
+  { path: 'handelsbetingelser', loadComponent: () => import('./pages/legal-terms').then(m => m.LegalTermsPage) },
   { path: '', pathMatch: 'full', redirectTo: 'uge' },
   { path: 'uge', canActivate: [authGuard], loadComponent: () => import('./pages/week-plan').then(m => m.WeekPlanPage) },
   { path: 'indkob', canActivate: [authGuard], loadComponent: () => import('./pages/shopping-list').then(m => m.ShoppingListPage) },

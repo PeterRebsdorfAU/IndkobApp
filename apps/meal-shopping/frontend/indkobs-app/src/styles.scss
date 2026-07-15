@@ -434,8 +434,23 @@ label.list-item:hover { background: var(--surface-2); }
 }
 
 /* ---------------------------------------------------------------------
-   12. Bundnavigation
+   12. Sidefod (juridiske links) + bundnavigation
    --------------------------------------------------------------------- */
+/* Sidefod med juridiske links (vises på alle sider) */
+.app-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: .8rem;
+  color: var(--muted);
+  display: flex;
+  gap: .5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.app-footer a { color: var(--muted); text-decoration: none; }
+.app-footer a:hover { color: var(--primary); text-decoration: underline; }
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
