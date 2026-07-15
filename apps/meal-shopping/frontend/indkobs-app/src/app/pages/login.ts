@@ -2,15 +2,19 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Auth } from '../auth';
+import { LogoMark } from '../shared/logo';
 
 @Component({
   selector: 'page-login',
-  imports: [FormsModule],
+  imports: [FormsModule, LogoMark],
   template: `
     <div class="login-wrap">
       <div class="card login-card">
-        <h1>🛒 Madplan &amp; Indkøb</h1>
-        <p class="muted">Log ind med din husstands konto.</p>
+        <div class="login-brand">
+          <app-logo [size]="52" />
+          <h1>Madplan &amp; Indkøb</h1>
+          <p class="muted">Log ind med din husstands konto.</p>
+        </div>
 
         <form (ngSubmit)="submit()">
           <div class="field">
@@ -33,9 +37,12 @@ import { Auth } from '../auth';
     </div>
   `,
   styles: [`
-    .login-wrap { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
-    .login-card { width: 100%; max-width: 380px; }
-    h1 { font-size: 1.3rem; }
+    .login-wrap { min-height: 82vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0; }
+    .login-card { width: 100%; max-width: 380px; padding: 1.6rem 1.4rem; box-shadow: var(--shadow-md); }
+    .login-brand { text-align: center; margin-bottom: 1.3rem; }
+    .login-brand app-logo { margin-bottom: .7rem; }
+    .login-brand h1 { font-size: 1.35rem; margin: 0 0 .2rem; }
+    .login-brand p { margin: 0; }
   `]
 })
 export class LoginPage {

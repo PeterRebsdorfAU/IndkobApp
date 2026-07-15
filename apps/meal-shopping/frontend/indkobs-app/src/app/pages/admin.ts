@@ -8,7 +8,7 @@ import { Category, Ingredient } from '../models';
   selector: 'page-admin',
   imports: [FormsModule],
   template: `
-    <h1>🏷️ Varer</h1>
+    <h1>Varer</h1>
     <p class="muted">Ingredienser og kategorier. Kategoriernes rækkefølge = indkøbslistens butiksrækkefølge.</p>
 
     <!-- Kategorier -->

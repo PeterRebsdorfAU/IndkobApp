@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
+import { ToastService } from '../shared/toast';
 import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, Order } from '../models';
 
 @Component({
@@ -37,7 +38,7 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
         <aside class="sl-side">
           <!-- Send til butik -->
           <div class="card">
-            <h3>🏪 Send til butik</h3>
+            <h3>Send til butik</h3>
             <p class="muted">Butikken pakker den og melder klar til afhentning.</p>
             <div class="field">
               <select [(ngModel)]="orderStore">
@@ -139,6 +140,7 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
 export class ShoppingListPage implements OnInit, OnDestroy {
   private api = inject(Api);
   private state = inject(WeekState);
+  private toast = inject(ToastService);
   private pollId?: ReturnType<typeof setInterval>;
 
   list = signal<ShoppingList | null>(null);
@@ -276,7 +278,7 @@ export class ShoppingListPage implements OnInit, OnDestroy {
     const url = this.shareUrl();
     if (!url) return;
     navigator.clipboard?.writeText(url).then(
-      () => this.shareCopied.set(true),
+      () => { this.shareCopied.set(true); this.toast.success('Delings-link kopieret'); },
       () => this.shareCopied.set(false));
   }
 

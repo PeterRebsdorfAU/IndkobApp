@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Api } from '../api';
 import { ShoppingList, ShoppingLine, unitLabel } from '../models';
+import { LogoMark } from '../shared/logo';
 
 /**
  * Offentlig del-side: viser en DELT indkøbsliste via token i URL'en (/del/:token).
@@ -9,8 +10,12 @@ import { ShoppingList, ShoppingLine, unitLabel } from '../models';
  */
 @Component({
   selector: 'page-shared-list',
+  imports: [LogoMark],
   template: `
-    <h1>🛒 Indkøbsliste</h1>
+    <div class="shared-brand">
+      <app-logo [size]="30" />
+      <h1>Indkøbsliste</h1>
+    </div>
 
     @if (list(); as l) {
       <div class="spread">
@@ -38,7 +43,11 @@ import { ShoppingList, ShoppingLine, unitLabel } from '../models';
     } @else {
       <div class="empty">Henter listen… (kan tage op til et minut første gang)</div>
     }
-  `
+  `,
+  styles: [`
+    .shared-brand { display: flex; align-items: center; gap: .55rem; margin-bottom: .9rem; }
+    .shared-brand h1 { margin: 0; }
+  `]
 })
 export class SharedListPage implements OnInit {
   private api = inject(Api);
