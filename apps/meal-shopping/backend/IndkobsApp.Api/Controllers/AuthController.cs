@@ -39,8 +39,30 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Forkert email eller adgangskode." });
         }
 
-        var (token, expires) = _tokens.Create(household);
-        return new AuthResultDto(token, expires.ToString("o"), household.Id, household.Name);
+        var (token, expires) = _tokens.CreateAccess(household);
+        var (refresh, _) = _tokens.CreateRefresh(household);
+        return new AuthResultDto(token, expires.ToString("o"), household.Id, household.Name, refresh);
+    }
+
+    /// <summary>
+    /// Bytter et gyldigt refresh-token til et nyt access-token (+ roteret refresh-token).
+    /// Additivt endpoint (T4); koordineret med T2. Stateless — se <see cref="TokenService"/>.
+    /// </summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResultDto>> Refresh(RefreshDto dto)
+    {
+        var householdId = _tokens.ValidateRefresh(dto.RefreshToken);
+        if (householdId == null)
+            return Unauthorized(new { message = "Ugyldigt eller udløbet refresh-token." });
+
+        var household = await _db.Households.FindAsync(householdId.Value);
+        if (household == null)
+            return Unauthorized(new { message = "Ugyldigt eller udløbet refresh-token." });
+
+        var (token, expires) = _tokens.CreateAccess(household);
+        var (refresh, _) = _tokens.CreateRefresh(household); // rotation: nyt refresh ved hver fornyelse
+        return new AuthResultDto(token, expires.ToString("o"), household.Id, household.Name, refresh);
     }
 
     [HttpGet("me")]

@@ -9,6 +9,13 @@ node_modules/
 **/dist/
 **/.angular/
 
+# --- Hemmeligheder / lokale overrides (må ALDRIG committes) ---
+.env
+.env.*
+appsettings.*.local.json
+appsettings.Local.json
+*.secrets.json
+
 # --- Editor / OS ---
 .idea/
 *.swp
