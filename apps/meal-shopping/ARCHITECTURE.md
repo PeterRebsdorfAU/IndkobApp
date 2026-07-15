@@ -130,6 +130,7 @@ Findes i `Services/ShoppingListService.cs`; enheds-matematik i `Models/Unit.cs` 
 ## 7. API-overflade (alle kræver JWT undtagen login/admin)
 ```
 POST   /api/auth/login            GET /api/auth/me
+POST   /api/auth/refresh          # byt refresh-token til nyt access-token (se SECURITY.md §2)
 POST/GET/DELETE /api/admin/households[/{id}]      (X-Admin-Key)
 GET/POST/PUT/DELETE /api/recipes[/{id}]
 GET/POST/PUT/DELETE /api/item-groups[/{id}]
@@ -174,6 +175,9 @@ Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyr
 - `Stores__AccessKey` — demo-adgangskode til butiks-siden (`/butik`). `Stores__Names__0..n` = butiksliste.
 - `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
   Repoet er offentligt, så prod-nøglerne må aldrig committes.
+- **Sikkerhedshærdning (T4):** rate limiting, stram CORS, security headers, kort access-token +
+  refresh-mekanisme og secrets-hygiejne/rotation er dokumenteret i [`SECURITY.md`](SECURITY.md).
+  Backenden nægter at starte i prod, hvis en nøgle stadig har dev-standardværdien.
 
 Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis der ingen husstand findes)
 + **uge-oprydning** (`WeekCleanupService`): uger ældre end `Cleanup:WeekRetentionWeeks` (default 5)

@@ -66,7 +66,10 @@ public record CheckLineDto(string LineKey, bool IsChecked);
 
 // ---------- Auth / husstande ----------
 public record LoginDto(string Email, string Password);
-public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, string HouseholdName);
+// RefreshToken er additiv (default null): ældre klienter ignorerer feltet; refresh-bevidste
+// klienter (T2's frontend) gemmer det og kalder POST /api/auth/refresh når access-token udløber.
+public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, string HouseholdName, string? RefreshToken = null);
+public record RefreshDto(string RefreshToken);
 public record MeDto(int HouseholdId, string HouseholdName, string Email);
 public record CreateHouseholdDto(string Name, string Email, string Password);
 public record HouseholdDto(int Id, string Name, string Email);
