@@ -178,6 +178,10 @@ button:disabled { opacity: .5; cursor: default; }
   text-align: center;
 }
 
+/* Dag-sektioner i ugeplanen (dag-først-flowet) */
+.day-group { border-top: 1px solid var(--border); }
+.day-group:first-of-type { border-top: none; }
+
 .empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
 .error { color: var(--danger); font-size: .85rem; margin: .3rem 0; }
 

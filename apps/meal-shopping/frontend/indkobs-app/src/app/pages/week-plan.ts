@@ -1,9 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api, isoWeek } from '../api';
 import { WeekState } from '../shared/week-state';
-import { Week, WeekDetail, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, unitLabel } from '../models';
+import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, unitLabel } from '../models';
 
 @Component({
   selector: 'page-week-plan',
@@ -46,45 +46,51 @@ import { Week, WeekDetail, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, uni
         </div>
       </div>
 
-      <!-- Retter i ugen -->
+      <!-- Retter i ugen: vælg DAG først, så ret -->
       <div class="card">
         <h3>Retter</h3>
-        @for (wr of d.recipes; track wr.id) {
-          <div class="list-item">
-            <div class="grow">
-              <div>{{ wr.recipeName }} @if (wr.cookedUtc) { <span class="badge">✅ lavet</span> }</div>
-              <div class="muted">Basis {{ wr.baseServings }} pers.</div>
-              @if (!wr.cookedUtc) {
-                <button class="small" style="margin-top:.25rem" (click)="markCooked(wr.id)">🍳 Lavet</button>
-              } @else {
-                <button class="btn-link" style="font-size:.75rem" (click)="unmarkCooked(wr.id)">fortryd</button>
-              }
-            </div>
-            <div>
-              <label>Personer</label>
-              <input type="number" min="1" style="width:64px"
-                     [ngModel]="wr.servings ?? wr.baseServings"
-                     (ngModelChange)="setServings(wr.id, $event)" />
-            </div>
-            <div>
-              <label>Dag</label>
-              <select style="width:110px" [ngModel]="wr.dayOfWeek"
-                      (ngModelChange)="setDay(wr.id, $event)">
-                <option [ngValue]="null">–</option>
-                @for (day of days; track $index) { <option [ngValue]="$index">{{ day }}</option> }
-              </select>
-            </div>
-            <button class="danger" (click)="removeRecipe(wr.id)">✕</button>
-          </div>
-        } @empty { <div class="muted">Ingen retter tilføjet.</div> }
+        <p class="muted">Tryk "+ Ret" på en dag og vælg retten.</p>
 
-        <div class="row" style="margin-top:.6rem">
-          <select class="grow" [(ngModel)]="addRecipeId">
-            <option [ngValue]="null">Vælg ret…</option>
-            @for (r of recipes(); track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
-          </select>
-          <button class="primary" (click)="addRecipe()" [disabled]="!addRecipeId">Tilføj</button>
-        </div>
+        @for (g of dayGroups(); track g.label) {
+          <div class="day-group">
+            <div class="spread" style="padding:.35rem 0">
+              <b [class.muted]="g.recipes.length === 0">{{ g.label }}</b>
+              <button class="small" (click)="openAdd(g.value)">+ Ret</button>
+            </div>
+
+            @for (wr of g.recipes; track wr.id) {
+              <div class="list-item">
+                <div class="grow">
+                  <div>{{ wr.recipeName }} @if (wr.cookedUtc) { <span class="badge">✅ lavet</span> }</div>
+                  <div class="muted">Basis {{ wr.baseServings }} pers.</div>
+                  @if (!wr.cookedUtc) {
+                    <button class="small" style="margin-top:.25rem" (click)="markCooked(wr.id)">🍳 Lavet</button>
+                  } @else {
+                    <button class="btn-link" style="font-size:.75rem" (click)="unmarkCooked(wr.id)">fortryd</button>
+                  }
+                </div>
+                <div>
+                  <label>Personer</label>
+                  <input type="number" min="1" style="width:64px"
+                         [ngModel]="wr.servings ?? wr.baseServings"
+                         (ngModelChange)="setServings(wr.id, $event)" />
+                </div>
+                <button class="danger" (click)="removeRecipe(wr.id)">✕</button>
+              </div>
+            }
+
+            @if (addDay() === g.value) {
+              <div class="row" style="margin:.4rem 0 .6rem">
+                <select class="grow" [(ngModel)]="addRecipeId">
+                  <option [ngValue]="null">Vælg ret til {{ g.label.toLowerCase() }}…</option>
+                  @for (r of recipes(); track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
+                </select>
+                <button class="primary" (click)="addRecipe()" [disabled]="!addRecipeId">Tilføj</button>
+                <button (click)="closeAdd()">✕</button>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       <!-- Varegrupper i ugen -->
@@ -148,6 +154,19 @@ export class WeekPlanPage implements OnInit {
   units = UNITS;
   label = unitLabel;
 
+  // Hvilken dag ret-vælgeren er åben for (undefined = lukket; null = "Uden bestemt dag").
+  addDay = signal<number | null | undefined>(undefined);
+
+  // Ugens retter grupperet pr. dag (dag-først-flowet). "Uden bestemt dag" til sidst.
+  dayGroups = computed(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const groups: { value: number | null; label: string; recipes: WeekRecipe[] }[] =
+      this.days.map((label, i) => ({ value: i, label, recipes: d.recipes.filter(r => r.dayOfWeek === i) }));
+    groups.push({ value: null, label: 'Uden bestemt dag', recipes: d.recipes.filter(r => r.dayOfWeek == null) });
+    return groups;
+  });
+
   // Formular-felter
   newYear = isoWeek(new Date()).year;
   newWeek = isoWeek(new Date()).week;
@@ -195,18 +214,21 @@ export class WeekPlanPage implements OnInit {
 
   private wid() { return this.detail()!.id; }
 
+  // Dag-først-flow: åbn ret-vælgeren under en bestemt dag (null = "Uden bestemt dag").
+  openAdd(day: number | null) {
+    this.addRecipeId = null;
+    this.addDay.set(day);
+  }
+  closeAdd() { this.addDay.set(undefined); }
+
   addRecipe() {
-    if (!this.addRecipeId) return;
-    this.api.addWeekRecipe(this.wid(), { recipeId: this.addRecipeId }).subscribe(d => { this.detail.set(d); this.addRecipeId = null; });
+    if (!this.addRecipeId || this.addDay() === undefined) return;
+    this.api.addWeekRecipe(this.wid(), { recipeId: this.addRecipeId, dayOfWeek: this.addDay() })
+      .subscribe(d => { this.detail.set(d); this.addRecipeId = null; this.closeAdd(); });
   }
   setServings(weekRecipeId: number, servings: number) {
     const wr = this.detail()!.recipes.find(x => x.id === weekRecipeId)!;
     this.api.updateWeekRecipe(this.wid(), weekRecipeId, { servings: Number(servings), dayOfWeek: wr.dayOfWeek })
-      .subscribe(d => this.detail.set(d));
-  }
-  setDay(weekRecipeId: number, dayOfWeek: number | null) {
-    const wr = this.detail()!.recipes.find(x => x.id === weekRecipeId)!;
-    this.api.updateWeekRecipe(this.wid(), weekRecipeId, { servings: wr.servings, dayOfWeek })
       .subscribe(d => this.detail.set(d));
   }
   removeRecipe(weekRecipeId: number) {

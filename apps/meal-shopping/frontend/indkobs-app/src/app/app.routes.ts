@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'lager', canActivate: [authGuard], loadComponent: () => import('./pages/pantry').then(m => m.PantryPage) },
   { path: 'hjem', canActivate: [authGuard], loadComponent: () => import('./pages/home-tasks').then(m => m.HomeTasksPage) },
   { path: 'varegrupper', canActivate: [authGuard], loadComponent: () => import('./pages/item-groups').then(m => m.ItemGroupsPage) },
-  { path: 'admin', canActivate: [authGuard], loadComponent: () => import('./pages/admin').then(m => m.AdminPage) },
+  { path: 'varer', canActivate: [authGuard], loadComponent: () => import('./pages/admin').then(m => m.AdminPage) },
+  { path: 'admin', redirectTo: 'varer' }, // gammelt navn -> nyt
   { path: '**', redirectTo: 'uge' }
 ];

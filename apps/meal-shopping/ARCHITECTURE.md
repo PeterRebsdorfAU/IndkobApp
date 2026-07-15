@@ -78,9 +78,12 @@ erDiagram
 ```
 
 - **Husstands-scoping:** `Recipe`, `ItemGroup`, `Week` har `HouseholdId` (cascade-delete fra `Household`).
-  `Ingredient` og `Category` er **globale/fælles** (ikke pr. husstand) — bevidst valg (fælles opslagsdata).
-- **`Ingredient`** normaliseres: `NormalizedName` = trimmet + lowercased, med unikt indeks → ingen dubletter
-  ("løg" = "Løg" = " Løg "). Get-or-create i `IngredientService`.
+  `Ingredient` og `Category` er OGSÅ **private pr. husstand** (fra jul 2026 — hver husstand har sin egen
+  varebank og butiksrækkefølge; FK er Restrict, så husstands-sletning rydder eksplicit op i AdminController).
+  Nye husstande får automatisk et standard-kategorisæt (`DbSeeder.SeedDefaultCategories`).
+- **`Ingredient`** normaliseres: `NormalizedName` = trimmet + lowercased, med unikt indeks pr.
+  `(HouseholdId, NormalizedName)` → ingen dubletter i husstanden ("løg" = "Løg" = " Løg ").
+  Get-or-create i `IngredientService` (kræver householdId).
 - **`Week`** er unik pr. `(HouseholdId, Year, WeekNumber)`.
 - **`WeekRecipe.Servings`** (nullable) overstyrer rettens basis-portioner → skalering. `DayOfWeek` (nullable) = valgfri dag.
 - **`WeekManualItem`** = løs vare (enten koblet til en `Ingredient` eller fritekst).
@@ -120,8 +123,8 @@ POST   /api/auth/login            GET /api/auth/me
 POST/GET/DELETE /api/admin/households[/{id}]      (X-Admin-Key)
 GET/POST/PUT/DELETE /api/recipes[/{id}]
 GET/POST/PUT/DELETE /api/item-groups[/{id}]
-GET/POST/PUT/DELETE /api/ingredients[/{id}]        (fælles data)
-GET/POST/PUT/DELETE /api/categories[/{id}]         (fælles data)
+GET/POST/PUT/DELETE /api/ingredients[/{id}]        (husstandens egen varebank)
+GET/POST/PUT/DELETE /api/categories[/{id}]         (husstandens egen butiksrækkefølge)
 GET/POST/DELETE /api/weeks[/{id}]
 POST/PUT/DELETE /api/weeks/{id}/recipes[/{wrId}]
 POST/DELETE     /api/weeks/{id}/item-groups[/{wgId}]
@@ -165,8 +168,10 @@ ikke opskrifter/lager. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt v
 - **Frontend deployer fra `main`, backend fra `cloud-deploy`** — husk at merge, ellers divergerer de.
 - **Skema-ændringer skal bevare data:** brug data-bevarende migration (jf. `tools/DataMigrator`),
   ALDRIG drop/reset af produktions-databasen. (Neon har point-in-time restore som sikkerhedsnet.)
-- **`Ingredient`/`Category` er globale** — en husstand kan i princippet se/ændre fælles opslagsdata.
-  Overvej at scope dem hvis fuld isolation ønskes senere.
+- **`Ingredient`/`Category` blev husstands-scoped i jul 2026** (migration `ScopeItemsPerHousehold`):
+  alt eksisterende tilfaldt hovedhusstanden; øvrige husstande fik kopi af kategorisættet + kloner af
+  de ingredienser, deres data refererede. Enkelte ubrugte varer kan derfor stå i hovedhusstandens
+  liste (kan bare slettes på Varer-siden).
 
 ## 10. Denne apps ansvarsgrænse (ift. økosystemet)
 - **Ejer:** retter, ugeplan, indkøbsliste-generering + aggregering, enhedslogik, (pt.) husstands-login.

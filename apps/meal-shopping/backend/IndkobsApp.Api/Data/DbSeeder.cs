@@ -11,6 +11,24 @@ namespace IndkobsApp.Api.Data;
 /// </summary>
 public static class DbSeeder
 {
+    /// <summary>Standard-kategorisæt (butiksrækkefølge) som nye husstande starter med.</summary>
+    public static readonly (string Name, int SortOrder)[] DefaultCategories =
+    {
+        ("Grønt", 10), ("Mejeri", 20), ("Kød", 30), ("Kolonial", 40),
+        ("Frost", 50), ("Brød", 60), ("Non-food / Toilet", 70), ("Rengøring", 80)
+    };
+
+    /// <summary>
+    /// Giver en NY husstand sit eget standard-kategorisæt (kategorier er private
+    /// pr. husstand — hver husstand har sin egen butiksrækkefølge).
+    /// Kalderen er ansvarlig for SaveChanges.
+    /// </summary>
+    public static void SeedDefaultCategories(AppDbContext db, int householdId)
+    {
+        foreach (var (name, sort) in DefaultCategories)
+            db.Categories.Add(new Category { HouseholdId = householdId, Name = name, SortOrder = sort });
+    }
+
     /// <summary>
     /// Seeder inspirations-kataloget (fælles, ikke husstands-data). Kører uafhængigt
     /// af husstands-seed og kun hvis kataloget er tomt — rører ALDRIG eksisterende data.
@@ -152,20 +170,20 @@ public static class DbSeeder
         db.Households.Add(demo);
         await db.SaveChangesAsync(); // få demo.Id
 
-        // --- Kategorier (butiksrækkefølge) — globale/fælles opslagsdata ---
-        var grønt    = new Category { Name = "Grønt", SortOrder = 10 };
-        var mejeri   = new Category { Name = "Mejeri", SortOrder = 20 };
-        var kød      = new Category { Name = "Kød", SortOrder = 30 };
-        var kolonial = new Category { Name = "Kolonial", SortOrder = 40 };
-        var frost    = new Category { Name = "Frost", SortOrder = 50 };
-        var brød     = new Category { Name = "Brød", SortOrder = 60 };
-        var nonfood  = new Category { Name = "Non-food / Toilet", SortOrder = 70 };
-        var rengøring = new Category { Name = "Rengøring", SortOrder = 80 };
+        // --- Kategorier (butiksrækkefølge) — demo-husstandens egne ---
+        var grønt    = new Category { HouseholdId = demo.Id, Name = "Grønt", SortOrder = 10 };
+        var mejeri   = new Category { HouseholdId = demo.Id, Name = "Mejeri", SortOrder = 20 };
+        var kød      = new Category { HouseholdId = demo.Id, Name = "Kød", SortOrder = 30 };
+        var kolonial = new Category { HouseholdId = demo.Id, Name = "Kolonial", SortOrder = 40 };
+        var frost    = new Category { HouseholdId = demo.Id, Name = "Frost", SortOrder = 50 };
+        var brød     = new Category { HouseholdId = demo.Id, Name = "Brød", SortOrder = 60 };
+        var nonfood  = new Category { HouseholdId = demo.Id, Name = "Non-food / Toilet", SortOrder = 70 };
+        var rengøring = new Category { HouseholdId = demo.Id, Name = "Rengøring", SortOrder = 80 };
         db.Categories.AddRange(grønt, mejeri, kød, kolonial, frost, brød, nonfood, rengøring);
 
-        // --- Ingredienser — globale/fælles master-liste ---
+        // --- Ingredienser — demo-husstandens egen varebank ---
         Ingredient Ing(string name, Category? cat) =>
-            new() { Name = name, NormalizedName = Ingredient.Normalize(name), Category = cat };
+            new() { HouseholdId = demo.Id, Name = name, NormalizedName = Ingredient.Normalize(name), Category = cat };
 
         var løg       = Ing("Løg", grønt);
         var hvidløg   = Ing("Hvidløg", grønt);
