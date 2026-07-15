@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from './api';
 import { Store, Order, OrderLine, unitLabel } from './models';
@@ -14,8 +14,9 @@ import { Store, Order, OrderLine, unitLabel } from './models';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   private api = inject(Api);
+  private pollId?: ReturnType<typeof setInterval>;
 
   key = '';
   authed = signal(false);
@@ -30,7 +31,11 @@ export class App implements OnInit {
   ngOnInit() {
     const savedKey = localStorage.getItem('butik.key');
     if (savedKey) { this.key = savedKey; this.connect(); }
+    // Auto-opdatér ordrekøen hvert 10. sek, så nye ordrer + ændringer dukker op uden genindlæsning.
+    this.pollId = setInterval(() => { if (this.store()) this.refresh(); }, 10000);
   }
+
+  ngOnDestroy() { if (this.pollId) clearInterval(this.pollId); }
 
   connect() {
     if (!this.key.trim()) return;

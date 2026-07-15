@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../api';
@@ -20,21 +20,6 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
         </div>
       </div>
 
-      @if (checkedCount() > 0) {
-        <div class="card">
-          <div class="spread">
-            <div class="grow">
-              <b>Færdig med at handle?</b>
-              <div class="muted">Læg de {{ checkedCount() }} afkrydsede varer på køkkenlageret med ét tryk.</div>
-            </div>
-            <button class="primary small" (click)="stock()" [disabled]="stocking()">
-              {{ stocking() ? '…' : '🥫 Læg på lager' }}
-            </button>
-          </div>
-          @if (stockMsg()) { <div class="muted" style="margin-top:.4rem">{{ stockMsg() }}</div> }
-        </div>
-      }
-
       @if (shareUrl()) {
         <div class="card" style="border-color:var(--primary)">
           <div class="muted">Delings-link ({{ shareCopied() ? 'kopieret ✅' : 'send til den der handler' }}):</div>
@@ -46,79 +31,103 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
         </div>
       }
 
-      @for (g of l.groups; track g.categoryName) {
-        <div class="card">
-          <h3>{{ g.categoryName }}</h3>
-          @for (line of g.lines; track line.lineKey) {
-            <label class="list-item" style="cursor:pointer">
-              <input type="checkbox" class="check" [checked]="line.isChecked"
-                     (change)="toggle(line)" />
-              <span class="grow" [class.checked]="line.isChecked || line.quantity === 0">
-                {{ line.name }} — {{ qty(line.quantity) }} {{ label(line.unit) }}
-                @if (line.isManual) { <span class="badge">løs</span> }
-                @if (line.quantity === 0) { <span class="badge">dækket af lager</span> }
-                @else if (line.onHandQuantity != null) {
-                  <span class="badge">har {{ qty(line.onHandQuantity) }} {{ label(line.onHandUnit!) }} hjemme</span>
-                }
-              </span>
-              <span class="muted" style="font-size:.72rem">{{ line.sources.join(', ') }}</span>
-            </label>
-          }
-        </div>
-      } @empty {
-        <div class="empty">Listen er tom. Tilføj retter eller varegrupper på Uge-fanen.</div>
-      }
+      <!-- To kolonner på desktop: liste til venstre, handlinger (send/ordrer) til højre.
+           På mobil stables handlingerne ØVERST (grid-template-areas skifter). -->
+      <div class="sl-grid">
+        <aside class="sl-side">
+          <!-- Send til butik -->
+          <div class="card">
+            <h3>🏪 Send til butik</h3>
+            <p class="muted">Butikken pakker den og melder klar til afhentning.</p>
+            <div class="field">
+              <select [(ngModel)]="orderStore">
+                <option [ngValue]="null">Vælg butik…</option>
+                @for (s of stores(); track s.name) { <option [ngValue]="s.name">{{ s.name }}</option> }
+              </select>
+            </div>
+            <button class="primary" style="width:100%" (click)="sendOrder()" [disabled]="!orderStore || sending()">
+              {{ sending() ? 'Sender…' : 'Send til butik' }}
+            </button>
+            @if (orderMsg()) { <div class="muted" style="margin-top:.4rem">{{ orderMsg() }}</div> }
+          </div>
 
-      <!-- Hurtig tilføjelse af løs vare -->
-      <div class="card">
-        <h3>Tilføj løs vare</h3>
-        <div class="line-input">
-          <input class="full" list="sl-ing" placeholder="Vare" [(ngModel)]="text" />
-          <input type="number" min="0" step="0.001" placeholder="Antal" [(ngModel)]="qtyInput" />
-          <select [(ngModel)]="unit">
-            @for (u of units; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
-          </select>
-          <button class="primary" (click)="add()">+</button>
-        </div>
-        <datalist id="sl-ing">
-          @for (i of ingredients(); track i.id) { <option [value]="i.name"></option> }
-        </datalist>
-        <p class="muted">Løse varer kan fjernes igen på <a routerLink="/uge">Uge-fanen</a>.</p>
-      </div>
-
-      <!-- Send til butik (demo af butiks-flow) -->
-      <div class="card">
-        <h3>🏪 Send til butik</h3>
-        <p class="muted">Send listen til en butik, der pakker den og melder klar til afhentning.</p>
-        <div class="row">
-          <select class="grow" [(ngModel)]="orderStore">
-            <option [ngValue]="null">Vælg butik…</option>
-            @for (s of stores(); track s.name) { <option [ngValue]="s.name">{{ s.name }}</option> }
-          </select>
-          <button class="primary" (click)="sendOrder()" [disabled]="!orderStore || sending()">
-            {{ sending() ? 'Sender…' : 'Send' }}
-          </button>
-        </div>
-        @if (orderMsg()) { <div class="muted" style="margin-top:.4rem">{{ orderMsg() }}</div> }
-      </div>
-
-      <!-- Mine ordrer + status -->
-      @if (myOrders().length > 0) {
-        <div class="card">
-          <h3>Mine ordrer</h3>
-          @for (o of myOrders(); track o.id) {
-            <div class="list-item">
-              <div class="grow">
-                <div>{{ o.storeName }}
-                  <span class="badge" [class.ready]="o.status === 'Klar'">{{ statusLabel(o.status) }}</span>
+          <!-- Mine ordrer + status (opdateres automatisk) -->
+          @if (myOrders().length > 0) {
+            <div class="card">
+              <h3>Mine ordrer</h3>
+              @for (o of myOrders(); track o.id) {
+                <div class="list-item">
+                  <div class="grow">
+                    <div>{{ o.storeName }}
+                      <span class="badge" [class.ready]="o.status === 'Klar'">{{ statusLabel(o.status) }}</span>
+                    </div>
+                    <div class="muted">{{ o.lines.length }} varer · sendt {{ shortDate(o.createdUtc) }}</div>
+                  </div>
+                  <button class="danger" (click)="cancelOrder(o)" title="Fjern">✕</button>
                 </div>
-                <div class="muted">{{ o.lines.length }} varer · sendt {{ shortDate(o.createdUtc) }}</div>
-              </div>
-              <button class="danger" (click)="cancelOrder(o)" title="Fjern">✕</button>
+              }
+              <p class="muted" style="font-size:.72rem; margin-top:.4rem">Status opdateres automatisk.</p>
             </div>
           }
+        </aside>
+
+        <div class="sl-main">
+          @if (checkedCount() > 0) {
+            <div class="card">
+              <div class="spread">
+                <div class="grow">
+                  <b>Færdig med at handle?</b>
+                  <div class="muted">Læg de {{ checkedCount() }} afkrydsede varer på køkkenlageret med ét tryk.</div>
+                </div>
+                <button class="primary small" (click)="stock()" [disabled]="stocking()">
+                  {{ stocking() ? '…' : '🥫 Læg på lager' }}
+                </button>
+              </div>
+              @if (stockMsg()) { <div class="muted" style="margin-top:.4rem">{{ stockMsg() }}</div> }
+            </div>
+          }
+
+          @for (g of l.groups; track g.categoryName) {
+            <div class="card">
+              <h3>{{ g.categoryName }}</h3>
+              @for (line of g.lines; track line.lineKey) {
+                <label class="list-item" style="cursor:pointer">
+                  <input type="checkbox" class="check" [checked]="line.isChecked"
+                         (change)="toggle(line)" />
+                  <span class="grow" [class.checked]="line.isChecked || line.quantity === 0">
+                    {{ line.name }} — {{ qty(line.quantity) }} {{ label(line.unit) }}
+                    @if (line.isManual) { <span class="badge">løs</span> }
+                    @if (line.quantity === 0) { <span class="badge">dækket af lager</span> }
+                    @else if (line.onHandQuantity != null) {
+                      <span class="badge">har {{ qty(line.onHandQuantity) }} {{ label(line.onHandUnit!) }} hjemme</span>
+                    }
+                  </span>
+                  <span class="muted" style="font-size:.72rem">{{ line.sources.join(', ') }}</span>
+                </label>
+              }
+            </div>
+          } @empty {
+            <div class="empty">Listen er tom. Tilføj retter eller varegrupper på Uge-fanen.</div>
+          }
+
+          <!-- Hurtig tilføjelse af løs vare -->
+          <div class="card">
+            <h3>Tilføj løs vare</h3>
+            <div class="line-input">
+              <input class="full" list="sl-ing" placeholder="Vare" [(ngModel)]="text" />
+              <input type="number" min="0" step="0.001" placeholder="Antal" [(ngModel)]="qtyInput" />
+              <select [(ngModel)]="unit">
+                @for (u of units; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
+              </select>
+              <button class="primary" (click)="add()">+</button>
+            </div>
+            <datalist id="sl-ing">
+              @for (i of ingredients(); track i.id) { <option [value]="i.name"></option> }
+            </datalist>
+            <p class="muted">Løse varer kan fjernes igen på <a routerLink="/uge">Uge-fanen</a>.</p>
+          </div>
         </div>
-      }
+      </div>
     } @else {
       <div class="empty">
         Ingen uge valgt.<br />
@@ -127,9 +136,10 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
     }
   `
 })
-export class ShoppingListPage implements OnInit {
+export class ShoppingListPage implements OnInit, OnDestroy {
   private api = inject(Api);
   private state = inject(WeekState);
+  private pollId?: ReturnType<typeof setInterval>;
 
   list = signal<ShoppingList | null>(null);
   ingredients = signal<Ingredient[]>([]);
@@ -160,7 +170,11 @@ export class ShoppingListPage implements OnInit {
     this.api.getStores().subscribe(s => this.stores.set(s));
     this.loadOrders();
     this.load();
+    // Auto-opdatér ordre-status hvert 15. sek, så "Klar" dukker op uden genindlæsning.
+    this.pollId = setInterval(() => this.loadOrders(), 15000);
   }
+
+  ngOnDestroy() { if (this.pollId) clearInterval(this.pollId); }
 
   loadOrders() { this.api.getMyOrders().subscribe(o => this.myOrders.set(o)); }
 

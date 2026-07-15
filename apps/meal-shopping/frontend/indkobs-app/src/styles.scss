@@ -183,6 +183,16 @@ button:disabled { opacity: .5; cursor: default; }
 .day-group { border-top: 1px solid var(--border); }
 .day-group:first-of-type { border-top: none; }
 
+/* Indkøbsside: to kolonner på desktop (liste + handlinger til højre),
+   én kolonne på mobil hvor handlingerne (send/ordrer) ligger ØVERST. */
+.sl-grid { display: grid; gap: .75rem; grid-template-columns: 1fr; grid-template-areas: "side" "main"; }
+.sl-main { grid-area: main; }
+.sl-side { grid-area: side; }
+@media (min-width: 820px) {
+  .sl-grid { grid-template-columns: 1fr 320px; grid-template-areas: "main side"; align-items: start; }
+  .sl-side { position: sticky; top: 4.2rem; }
+}
+
 .empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
 .error { color: var(--danger); font-size: .85rem; margin: .3rem 0; }
 
