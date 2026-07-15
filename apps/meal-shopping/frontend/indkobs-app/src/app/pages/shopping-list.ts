@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
 import { ToastService } from '../shared/toast';
+import { EmptyState } from '../shared/empty-state';
 import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, Order } from '../models';
 
 @Component({
   selector: 'page-shopping-list',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, EmptyState],
   template: `
     <h1>Indkøbsliste</h1>
 
@@ -108,7 +109,10 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
               }
             </div>
           } @empty {
-            <div class="empty">Listen er tom. Tilføj retter eller varegrupper på Uge-fanen.</div>
+            <app-empty-state icon="🛒" title="Listen er tom"
+              text="Tilføj retter eller varegrupper på Uge-fanen, så bygger vi indkøbslisten for dig.">
+              <a routerLink="/uge"><button class="primary">Gå til Ugeplan</button></a>
+            </app-empty-state>
           }
 
           <!-- Hurtig tilføjelse af løs vare -->
@@ -130,10 +134,10 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
         </div>
       </div>
     } @else {
-      <div class="empty">
-        Ingen uge valgt.<br />
-        <a routerLink="/uge">Gå til Ugeplan og vælg en uge.</a>
-      </div>
+      <app-empty-state icon="🛒" title="Ingen uge valgt"
+        text="Vælg en uge på Ugeplan-fanen for at se den samlede indkøbsliste.">
+        <a routerLink="/uge"><button class="primary">Gå til Ugeplan</button></a>
+      </app-empty-state>
     }
   `
 })

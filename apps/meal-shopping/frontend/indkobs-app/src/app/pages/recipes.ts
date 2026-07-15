@@ -4,10 +4,11 @@ import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
 import { Recipe, RecipeUpsert, Ingredient, IngredientLineInput, CatalogRecipe, unitLabel } from '../models';
 import { IngredientLinesEditor } from '../shared/ingredient-lines';
+import { EmptyState } from '../shared/empty-state';
 
 @Component({
   selector: 'page-recipes',
-  imports: [FormsModule, IngredientLinesEditor],
+  imports: [FormsModule, IngredientLinesEditor, EmptyState],
   template: `
     <h1>Retter</h1>
 
@@ -48,7 +49,11 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
             </div>
           </div>
         } @empty {
-          <div class="empty">Ingen retter endnu. Opret din første — eller find én under ✨ Inspiration!</div>
+          <app-empty-state icon="🍽️" title="Ingen retter endnu"
+            text="Opret din første ret — eller hent inspiration fra det fælles katalog.">
+            <button class="primary" (click)="startNew()">+ Ny ret</button>
+            <button (click)="tab.set('inspiration')">✨ Se Inspiration</button>
+          </app-empty-state>
         }
       }
 

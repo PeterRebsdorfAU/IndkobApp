@@ -9,6 +9,9 @@ export const routes: Routes = [
   { path: 'privatliv', loadComponent: () => import('./pages/legal-privacy').then(m => m.LegalPrivacyPage) },
   { path: 'handelsbetingelser', loadComponent: () => import('./pages/legal-terms').then(m => m.LegalTermsPage) },
   { path: '', pathMatch: 'full', redirectTo: 'uge' },
+  // Første-gangs-onboarding + hjælp/FAQ
+  { path: 'velkommen', canActivate: [authGuard], loadComponent: () => import('./pages/onboarding').then(m => m.OnboardingPage) },
+  { path: 'hjaelp', canActivate: [authGuard], loadComponent: () => import('./pages/faq').then(m => m.FaqPage) },
   { path: 'uge', canActivate: [authGuard], loadComponent: () => import('./pages/week-plan').then(m => m.WeekPlanPage) },
   { path: 'indkob', canActivate: [authGuard], loadComponent: () => import('./pages/shopping-list').then(m => m.ShoppingListPage) },
   { path: 'retter', canActivate: [authGuard], loadComponent: () => import('./pages/recipes').then(m => m.RecipesPage) },

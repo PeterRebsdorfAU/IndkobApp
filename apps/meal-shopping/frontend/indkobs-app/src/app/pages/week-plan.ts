@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api, isoWeek } from '../api';
 import { WeekState } from '../shared/week-state';
+import { EmptyState } from '../shared/empty-state';
 import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, unitLabel } from '../models';
 
 @Component({
   selector: 'page-week-plan',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, EmptyState],
   template: `
     <h1>Ugeplan</h1>
 
@@ -135,7 +136,8 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
         </datalist>
       </div>
     } @else {
-      <div class="empty">Vælg eller opret en uge for at planlægge.</div>
+      <app-empty-state icon="📅" title="Planlæg din første uge"
+        text="Vælg en uge ovenfor — eller opret en ny — og tilføj retter og varegrupper til dagene." />
     }
   `
 })
