@@ -98,6 +98,7 @@ Rækkefølge = anbefalet prioritet. ☐ = ikke gjort.
 - ☐ Flersproget (hvis ud over DK), tilgængelighed (WCAG).
 
 ### Teknisk gæld fra hobby-fasen (løbende)
-- ☐ Konsolidér til én deploy-branch (i dag: frontend fra `main`, backend fra `develop`).
+- ☐ Formalisér release-flowet (i dag bevidst: `main` = produktion/brugervendt, `develop` = arbejde + uudgivet butik).
+  På sigt: git-tags/miljøer + feature-flags i stedet for at styre "hvad er live" via branch-divergens.
 - ☐ Auto-deploy ved push (kræver privat repo + Git-integration — se note nedenfor).
 - ☐ Overvej privat repo (kræver løsning på GitHub-adgang; i dag offentligt pga. AU-konto-blokering).

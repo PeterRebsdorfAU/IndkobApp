@@ -79,7 +79,7 @@ Opret de to services manuelt. **Lav backenden først.**
 **Frontend (Static Site):**
 1. **New +** → **Static Site** → **"Public Git Repository"** → samme URL.
 2. Indstil:
-   - **Name:** `indkobapp-web` · **Branch:** `develop`
+   - **Name:** `indkobapp-web` · **Branch:** `main`
    - **Root Directory:** `frontend/indkobs-app`
    - **Build Command:** `npm ci && npm run build`
    - **Publish Directory:** `dist/indkobs-app/browser`

@@ -3,6 +3,12 @@
 #
 # Brug: Render Dashboard -> New -> Blueprint -> peg på dette repo.
 # Bagefter indsættes Neon-connection string under ConnectionStrings__Default.
+#
+# BRANCH-MODEL (sættes pr. service i dashboardet, ikke her):
+#   indkobapp-web   -> main     (produktion, brugervendt — INGEN butik/ordrer)
+#   indkobapp-api   -> develop  (additiv: ekstra ordre-endpoints, usynlige for main-frontenden)
+#   indkobapp-butik -> develop  (butiks-demo; findes kun på develop)
+# Butik/ordrer bliver først "live" for brugerne når develop -> main merges.
 
 services:
   # ---------- Backend-API (.NET 10, Docker) ----------
