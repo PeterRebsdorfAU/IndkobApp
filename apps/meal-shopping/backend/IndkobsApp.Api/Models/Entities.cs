@@ -273,3 +273,39 @@ public class WeekShareToken
     public string Token { get; set; } = string.Empty;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>Status-flow for en ordre sendt til en butik.</summary>
+public enum OrderStatus { Modtaget, Pakkes, Klar, Afhentet, Annulleret }
+
+/// <summary>
+/// En indkøbsordre en husstand sender til en butik (demo af butiks-flowet):
+/// butikken pakker linjerne og markerer ordren klar; husstanden ser status.
+/// Linjerne er et SNAPSHOT af indkøbslisten på afsendelsestidspunktet.
+/// </summary>
+public class Order
+{
+    public int Id { get; set; }
+    public int HouseholdId { get; set; }
+    public string HouseholdName { get; set; } = string.Empty; // vises for butikken
+    public string StoreName { get; set; } = string.Empty;     // valgt butik
+    public OrderStatus Status { get; set; } = OrderStatus.Modtaget;
+    public string? Note { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ReadyUtc { get; set; }
+
+    public List<OrderLine> Lines { get; set; } = new();
+}
+
+public class OrderLine
+{
+    public int Id { get; set; }
+    public int OrderId { get; set; }
+    public Order Order { get; set; } = null!;
+
+    public string Name { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public Unit Unit { get; set; }
+    public string? CategoryName { get; set; } // så butikken kan pakke i rækkefølge
+    public bool IsPacked { get; set; }
+    public bool NotAvailable { get; set; }
+}

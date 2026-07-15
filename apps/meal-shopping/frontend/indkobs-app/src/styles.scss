@@ -105,6 +105,7 @@ button:disabled { opacity: .5; cursor: default; }
   padding: .1rem .55rem;
   font-size: .75rem;
 }
+.badge.ready { background: var(--primary); color: #fff; }
 
 .pill {
   background: var(--accent);

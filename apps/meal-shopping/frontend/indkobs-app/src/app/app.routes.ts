@@ -5,6 +5,8 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login').then(m => m.LoginPage) },
   // Offentlig delt indkøbsliste (via token-link) — bevidst UDEN auth-guard.
   { path: 'del/:token', loadComponent: () => import('./pages/shared-list').then(m => m.SharedListPage) },
+  // Butiks-demo-side — egen adgang (butiks-nøgle), IKKE husstands-login.
+  { path: 'butik', loadComponent: () => import('./pages/store').then(m => m.StorePage) },
   { path: '', pathMatch: 'full', redirectTo: 'uge' },
   { path: 'uge', canActivate: [authGuard], loadComponent: () => import('./pages/week-plan').then(m => m.WeekPlanPage) },
   { path: 'indkob', canActivate: [authGuard], loadComponent: () => import('./pages/shopping-list').then(m => m.ShoppingListPage) },

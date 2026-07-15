@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<WeekShareToken> WeekShareTokens => Set<WeekShareToken>();
     public DbSet<HouseholdTask> HouseholdTasks => Set<HouseholdTask>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderLine> OrderLines => Set<OrderLine>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -211,6 +213,26 @@ public class AppDbContext : DbContext
             e.Property(x => x.Assignees).HasMaxLength(200);
             e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.HouseholdId);
+        });
+
+        b.Entity<Order>(e =>
+        {
+            e.Property(x => x.HouseholdName).IsRequired().HasMaxLength(150);
+            e.Property(x => x.StoreName).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.HouseholdId);
+            e.HasIndex(x => x.StoreName);
+        });
+
+        b.Entity<OrderLine>(e =>
+        {
+            e.Property(x => x.Name).IsRequired().HasMaxLength(150);
+            e.Property(x => x.Quantity).HasPrecision(10, 3);
+            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.CategoryName).HasMaxLength(100);
+            e.HasOne(x => x.Order).WithMany(o => o.Lines).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

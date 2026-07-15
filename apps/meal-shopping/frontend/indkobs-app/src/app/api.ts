@@ -5,7 +5,7 @@ import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
   CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult,
-  HouseholdTask, TasksSummary
+  HouseholdTask, TasksSummary, Store, Order
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -127,6 +127,26 @@ export class Api {
   completeTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/complete`, {}); }
   uncompleteTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/uncomplete`, {}); }
   deleteTask(id: number) { return this.http.delete(`${API}/tasks/${id}`); }
+
+  // ----- Ordrer: forbruger-side -----
+  getStores(): Observable<Store[]> { return this.http.get<Store[]>(`${API}/orders/stores`); }
+  getMyOrders(): Observable<Order[]> { return this.http.get<Order[]>(`${API}/orders`); }
+  createOrderFromWeek(weekId: number, body: { storeName: string; note?: string | null }) {
+    return this.http.post<Order>(`${API}/orders/from-week/${weekId}`, body);
+  }
+  cancelOrder(id: number) { return this.http.delete(`${API}/orders/${id}`); }
+
+  // ----- Ordrer: butiks-side (adgang via butiks-nøgle, ikke login) -----
+  private storeHeaders(key: string) { return { headers: { 'X-Store-Key': key } }; }
+  storeGetStores(key: string): Observable<Store[]> { return this.http.get<Store[]>(`${API}/store/stores`, this.storeHeaders(key)); }
+  storeGetOrders(key: string, store: string): Observable<Order[]> {
+    return this.http.get<Order[]>(`${API}/store/orders`, { headers: { 'X-Store-Key': key }, params: { store } });
+  }
+  storePackLine(key: string, orderId: number, lineId: number, body: { isPacked: boolean; notAvailable: boolean }) {
+    return this.http.put<Order>(`${API}/store/orders/${orderId}/lines/${lineId}`, body, this.storeHeaders(key));
+  }
+  storeReady(key: string, orderId: number) { return this.http.post<Order>(`${API}/store/orders/${orderId}/ready`, {}, this.storeHeaders(key)); }
+  storeCollected(key: string, orderId: number) { return this.http.post<Order>(`${API}/store/orders/${orderId}/collected`, {}, this.storeHeaders(key)); }
 }
 
 // ISO-ugenummer for en given dato (til uge-vælgeren).

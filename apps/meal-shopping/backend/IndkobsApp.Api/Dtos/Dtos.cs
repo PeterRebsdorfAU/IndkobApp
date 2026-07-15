@@ -90,6 +90,14 @@ public record ShareTokenDto(string Token);
 // ---------- Lager-kredsløb ----------
 public record StockCheckedResultDto(int LinesStocked);
 
+// ---------- Ordrer (butiks-flow) ----------
+public record StoreDto(string Name);
+public record OrderLineDto(int Id, string Name, decimal Quantity, Unit Unit, string? CategoryName, bool IsPacked, bool NotAvailable);
+public record OrderDto(int Id, string HouseholdName, string StoreName, string Status, string? Note,
+    string CreatedUtc, string? ReadyUtc, List<OrderLineDto> Lines);
+public record CreateOrderDto(string StoreName, string? Note);
+public record PackLineDto(bool IsPacked, bool NotAvailable);
+
 // ---------- Hjemmets opgaver ----------
 // IntervalDays null = engangsopgave. CurrentAssignee = hvis tur det er (fra rotation).
 public record HouseholdTaskDto(

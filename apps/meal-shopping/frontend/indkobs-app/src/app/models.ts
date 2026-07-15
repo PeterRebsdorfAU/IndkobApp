@@ -110,3 +110,14 @@ export interface HouseholdTask {
   isDone: boolean; lastCompletedUtc: string | null;
 }
 export interface TasksSummary { overdue: number; openTodos: number; }
+
+// ---------- Ordrer (butiks-flow) ----------
+export interface Store { name: string; }
+export interface OrderLine {
+  id: number; name: string; quantity: number; unit: Unit;
+  categoryName: string | null; isPacked: boolean; notAvailable: boolean;
+}
+export interface Order {
+  id: number; householdName: string; storeName: string; status: string;
+  note: string | null; createdUtc: string; readyUtc: string | null; lines: OrderLine[];
+}

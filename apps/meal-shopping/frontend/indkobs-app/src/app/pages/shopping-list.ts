@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
-import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel } from '../models';
+import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, Order } from '../models';
 
 @Component({
   selector: 'page-shopping-list',
@@ -85,6 +85,40 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel } from '
         </datalist>
         <p class="muted">Løse varer kan fjernes igen på <a routerLink="/uge">Uge-fanen</a>.</p>
       </div>
+
+      <!-- Send til butik (demo af butiks-flow) -->
+      <div class="card">
+        <h3>🏪 Send til butik</h3>
+        <p class="muted">Send listen til en butik, der pakker den og melder klar til afhentning.</p>
+        <div class="row">
+          <select class="grow" [(ngModel)]="orderStore">
+            <option [ngValue]="null">Vælg butik…</option>
+            @for (s of stores(); track s.name) { <option [ngValue]="s.name">{{ s.name }}</option> }
+          </select>
+          <button class="primary" (click)="sendOrder()" [disabled]="!orderStore || sending()">
+            {{ sending() ? 'Sender…' : 'Send' }}
+          </button>
+        </div>
+        @if (orderMsg()) { <div class="muted" style="margin-top:.4rem">{{ orderMsg() }}</div> }
+      </div>
+
+      <!-- Mine ordrer + status -->
+      @if (myOrders().length > 0) {
+        <div class="card">
+          <h3>Mine ordrer</h3>
+          @for (o of myOrders(); track o.id) {
+            <div class="list-item">
+              <div class="grow">
+                <div>{{ o.storeName }}
+                  <span class="badge" [class.ready]="o.status === 'Klar'">{{ statusLabel(o.status) }}</span>
+                </div>
+                <div class="muted">{{ o.lines.length }} varer · sendt {{ shortDate(o.createdUtc) }}</div>
+              </div>
+              <button class="danger" (click)="cancelOrder(o)" title="Fjern">✕</button>
+            </div>
+          }
+        </div>
+      }
     } @else {
       <div class="empty">
         Ingen uge valgt.<br />
@@ -114,9 +148,58 @@ export class ShoppingListPage implements OnInit {
   stocking = signal(false);
   stockMsg = signal('');
 
+  // Ordrer (send til butik)
+  stores = signal<Store[]>([]);
+  myOrders = signal<Order[]>([]);
+  orderStore: string | null = null;
+  sending = signal(false);
+  orderMsg = signal('');
+
   ngOnInit() {
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
+    this.api.getStores().subscribe(s => this.stores.set(s));
+    this.loadOrders();
     this.load();
+  }
+
+  loadOrders() { this.api.getMyOrders().subscribe(o => this.myOrders.set(o)); }
+
+  sendOrder() {
+    const id = this.state.selectedWeekId();
+    if (!id || !this.orderStore) return;
+    this.sending.set(true);
+    this.orderMsg.set('');
+    this.api.createOrderFromWeek(id, { storeName: this.orderStore }).subscribe({
+      next: () => {
+        this.sending.set(false);
+        this.orderMsg.set(`✅ Sendt til ${this.orderStore}. Følg status under "Mine ordrer".`);
+        this.orderStore = null;
+        this.loadOrders();
+      },
+      error: (e) => {
+        this.sending.set(false);
+        this.orderMsg.set(e.status === 400 ? 'Listen er tom — intet at sende.' : 'Kunne ikke sende ordren.');
+      }
+    });
+  }
+
+  cancelOrder(o: Order) {
+    if (!confirm(`Fjern ordren til ${o.storeName}?`)) return;
+    this.api.cancelOrder(o.id).subscribe(() => this.loadOrders());
+  }
+
+  statusLabel(s: string): string {
+    switch (s) {
+      case 'Modtaget': return '🕐 Modtaget';
+      case 'Pakkes': return '📦 Pakkes';
+      case 'Klar': return '✅ Klar til afhentning';
+      case 'Afhentet': return 'Afhentet';
+      default: return s;
+    }
+  }
+  shortDate(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getDate()}/${d.getMonth() + 1} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   load() {
