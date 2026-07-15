@@ -162,6 +162,7 @@ DELETE /api/orders/{id}                    # annullér/fjern ordre
 GET  /api/store/stores|orders?store=      # BUTIK (X-Store-Key): butiksliste / ordrekø
 PUT  /api/store/orders/{id}/lines/{lineId}   # BUTIK: pak linje / ikke på lager
 POST /api/store/orders/{id}/ready|collected  # BUTIK: marker klar / afhentet
+GET  /health                              # ANONYM: readiness (tjekker DB) til uptime-overvågning
 ```
 Indkøbslistens `ShoppingLineDto.Quantity` er **skal-købes** (behov − lager, aldrig negativ);
 `OnHandQuantity/OnHandUnit` viser lagerbeholdningen. Fritekst-varer matches ikke mod lager.
@@ -172,6 +173,9 @@ Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyr
 - `Jwt__Key` — JWT-signeringsnøgle (≥32 tegn). **Hemmelig.**
 - `Admin__Key` — nøgle til admin-endpoints. **Hemmelig.**
 - `Stores__AccessKey` — demo-adgangskode til butiks-siden (`/butik`). `Stores__Names__0..n` = butiksliste.
+- `Sentry__Dsn` — **valgfri.** Aktiverer fejllogning/overvågning (Sentry) i backend. Mangler den, er
+  overvågning en no-op (appen kører uændret). Frontend har sin egen DSN i `environment*.ts`.
+  Se [`../../docs/OBSERVABILITY.md`](../../docs/OBSERVABILITY.md).
 - `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
   Repoet er offentligt, så prod-nøglerne må aldrig committes.
 

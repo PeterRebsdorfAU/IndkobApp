@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using IndkobsApp.Api.Data;
 using IndkobsApp.Api.Models;
+using IndkobsApp.Api.Observability;
 using IndkobsApp.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -9,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fejllogning & overvågning (T6): Sentry + struktureret request-logging. No-op uden Sentry:Dsn.
+builder.AddObservability();
 
 // JSON: serialisér enums (Unit) som tekst, så frontend ser "G"/"Kg" frem for tal.
 builder.Services.AddControllers().AddJsonOptions(o =>
@@ -79,9 +83,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseObservability(); // Sentry-tracing (kun m. DSN) + struktureret request-logging
 app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthEndpoints(); // anonymt /health readiness-endpoint
 
 app.Run();
