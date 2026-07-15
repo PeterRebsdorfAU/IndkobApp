@@ -67,7 +67,7 @@ Opret de to services manuelt. **Lav backenden først.**
 2. Indsæt URL: `https://github.com/PeterRebsdorfAU/IndkobApp` → Continue.
 3. Indstil:
    - **Name:** `indkobapp-api`
-   - **Branch:** `cloud-deploy`
+   - **Branch:** `develop`
    - **Region:** Frankfurt · **Instance Type:** Free
    - **Language/Runtime:** Docker (Render finder `Dockerfile` i roden automatisk)
 4. **Environment Variables** → tilføj tre:
@@ -79,7 +79,7 @@ Opret de to services manuelt. **Lav backenden først.**
 **Frontend (Static Site):**
 1. **New +** → **Static Site** → **"Public Git Repository"** → samme URL.
 2. Indstil:
-   - **Name:** `indkobapp-web` · **Branch:** `cloud-deploy`
+   - **Name:** `indkobapp-web` · **Branch:** `develop`
    - **Root Directory:** `frontend/indkobs-app`
    - **Build Command:** `npm ci && npm run build`
    - **Publish Directory:** `dist/indkobs-app/browser`
@@ -132,7 +132,7 @@ Har du allerede deployet én gang (før login), så gør følgende for at få lo
 **Backend (`indkobapp`):**
 1. Render → API-servicen → **Environment** → tilføj to variabler (brug **"Generate"**):
    - `Jwt__Key` (mindst 32 tegn) · `Admin__Key`
-2. **Manual Deploy → Deploy latest commit** (henter `cloud-deploy` med auth-koden).
+2. **Manual Deploy → Deploy latest commit** (henter `develop` med auth-koden).
    Ved opstart migreres databasen og en **demo-husstand** oprettes automatisk.
 
 **Frontend (`indkobapp-web`):**

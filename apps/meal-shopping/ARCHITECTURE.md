@@ -30,7 +30,7 @@ Derudover (bygget som afgrænsede moduler i samme app — se §10):
   → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `apps/meal-shopping/frontend/indkobs-app`,
   build `npm ci && npm run build`, publish `dist/indkobs-app/browser`, SPA-rewrite `/* → /index.html`.
 - **Backend:** ASP.NET Core 10 Web API (C#), Docker. Hostes som **Render Web Service**
-  → `indkobapp.onrender.com`. Bygges fra branch `cloud-deploy`, Docker-context `apps/meal-shopping`, `apps/meal-shopping/Dockerfile`.
+  → `indkobapp.onrender.com`. Bygges fra branch `develop`, Docker-context `apps/meal-shopping`, `apps/meal-shopping/Dockerfile`.
 - **Database:** PostgreSQL på **Neon** (branch `production`), EF Core 10 (Npgsql), code-first migrations.
 - **Auth:** JWT (Bearer), login pr. husstand.
 
@@ -59,8 +59,8 @@ apps/meal-shopping/
 ```
 Fælles økosystem-ting ligger i repo-roden: `docs/ECOSYSTEM.md`, `shared/`, `render.yaml`.
 
-**Branches:** `main` (frontend deployer herfra) og `cloud-deploy` (backend deployer herfra; primær arbejdsbranch).
-Hold dem i sync ved at merge `cloud-deploy → main`.
+**Branches:** `main` (frontend deployer herfra) og `develop` (backend deployer herfra; primær arbejdsbranch).
+Hold dem i sync ved at merge `develop → main`.
 
 ## 4. Datamodel
 
@@ -178,7 +178,7 @@ ikke opskrifter/lager. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt v
 ## 9. Kendte forbehold / gotchas
 - **Gratis Render:** backend "sover" efter inaktivitet → ~30-60 sek cold start på første kald.
 - **PWA-cache:** ny frontend-version kræver evt. at appen lukkes/genindlæses (service worker opdaterer sig).
-- **Frontend deployer fra `main`, backend fra `cloud-deploy`** — husk at merge, ellers divergerer de.
+- **Frontend deployer fra `main`, backend fra `develop`** — husk at merge, ellers divergerer de.
 - **Skema-ændringer skal bevare data:** brug data-bevarende migration (jf. `tools/DataMigrator`),
   ALDRIG drop/reset af produktions-databasen. (Neon har point-in-time restore som sikkerhedsnet.)
 - **`Ingredient`/`Category` blev husstands-scoped i jul 2026** (migration `ScopeItemsPerHousehold`):
