@@ -12,7 +12,7 @@ import { HouseholdTask } from '../models';
   selector: 'page-home-tasks',
   imports: [FormsModule],
   template: `
-    <h1>🏠 Hjem</h1>
+    <h1>Hjem</h1>
     <p class="muted">Husstandens opgaver og pligter — fælles, ligesom indkøbslisten.</p>
 
     <!-- Opret -->
@@ -53,7 +53,7 @@ import { HouseholdTask } from '../models';
     <!-- Forfaldne pligter -->
     @if (overdue().length > 0) {
       <div class="card" style="border-color:var(--danger)">
-        <h3>⏰ Forfaldne</h3>
+        <h3>Forfaldne</h3>
         @for (t of overdue(); track t.id) {
           <div class="list-item">
             <div class="grow">
@@ -71,7 +71,7 @@ import { HouseholdTask } from '../models';
 
     <!-- Engangsopgaver -->
     <div class="card">
-      <h3>📋 Opgaver</h3>
+      <h3>Opgaver</h3>
       @for (t of openTodos(); track t.id) {
         <label class="list-item" style="cursor:pointer">
           <input type="checkbox" class="check" [checked]="false" (change)="complete(t)" />
@@ -94,7 +94,7 @@ import { HouseholdTask } from '../models';
 
     <!-- Kommende pligter -->
     <div class="card">
-      <h3>🔁 Kommende pligter</h3>
+      <h3>Kommende pligter</h3>
       @for (t of upcoming(); track t.id) {
         <div class="list-item">
           <div class="grow">
