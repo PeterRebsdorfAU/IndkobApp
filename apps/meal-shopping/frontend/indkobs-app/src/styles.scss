@@ -136,6 +136,22 @@ button:disabled { opacity: .5; cursor: default; }
 }
 .topbar .brand { font-weight: 600; color: var(--primary); }
 
+/* Sidefod med juridiske links (vises på alle sider) */
+.app-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: .8rem;
+  color: var(--muted);
+  display: flex;
+  gap: .5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.app-footer a { color: var(--muted); text-decoration: none; }
+.app-footer a:hover { color: var(--primary); text-decoration: underline; }
+
 /* Bundnavigation */
 .bottom-nav {
   position: fixed;

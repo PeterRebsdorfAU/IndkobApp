@@ -136,6 +136,12 @@ export class Api {
   }
   cancelOrder(id: number) { return this.http.delete(`${API}/orders/${id}`); }
   // (Butiks-siden bor nu i den separate apps/supermarket-app.)
+
+  // ----- GDPR: data-eksport & -sletning -----
+  // Henter hele husstandens data som JSON-objekt (Bearer-token sættes af interceptor).
+  exportMyData(): Observable<unknown> { return this.http.get<unknown>(`${API}/privacy/export`); }
+  // Sletter egen husstand permanent — kræver gen-indtastet adgangskode.
+  deleteMyHousehold(password: string) { return this.http.post(`${API}/privacy/delete`, { password }); }
 }
 
 // ISO-ugenummer for en given dato (til uge-vælgeren).

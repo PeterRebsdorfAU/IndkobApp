@@ -98,6 +98,47 @@ public record OrderDto(int Id, string HouseholdName, string StoreName, string St
 public record CreateOrderDto(string StoreName, string? Note);
 public record PackLineDto(bool IsPacked, bool NotAvailable);
 
+// ---------- GDPR: data-eksport & -sletning ----------
+// Bekræftet sletning af egen husstand: brugeren gen-indtaster sin adgangskode.
+public record DeleteAccountDto(string Password);
+
+// Flad, cykel-fri eksport af ALT husstandens data (retten til dataportabilitet).
+// Adgangskode-hash og andre hemmeligheder tages IKKE med.
+public record DataExportDto(
+    string ExportedUtc,
+    ExportHouseholdDto Household,
+    List<ExportCategoryDto> Categories,
+    List<ExportIngredientDto> Ingredients,
+    List<ExportRecipeDto> Recipes,
+    List<ExportItemGroupDto> ItemGroups,
+    List<ExportWeekDto> Weeks,
+    List<ExportPantryItemDto> Pantry,
+    List<ExportTaskDto> Tasks,
+    List<ExportOrderDto> Orders,
+    List<ExportPublishedRecipeDto> PublishedToCatalog);
+
+public record ExportHouseholdDto(int Id, string Name, string Email, string CreatedUtc);
+public record ExportCategoryDto(int Id, string Name, int SortOrder);
+public record ExportIngredientDto(int Id, string Name, string? Category);
+public record ExportLineDto(string Ingredient, decimal Quantity, string Unit);
+public record ExportRecipeDto(int Id, string Name, string? Note, int Servings, bool PublishedToCatalog, List<ExportLineDto> Ingredients);
+public record ExportItemGroupDto(int Id, string Name, List<ExportLineDto> Ingredients);
+public record ExportWeekRecipeDto(string Recipe, int? Servings, int? DayOfWeek, string? CookedUtc);
+public record ExportWeekItemGroupDto(string ItemGroup);
+public record ExportWeekManualItemDto(string Name, decimal Quantity, string Unit);
+public record ExportWeekCheckDto(string LineKey, bool IsChecked);
+public record ExportWeekDto(
+    int Id, int Year, int WeekNumber,
+    List<ExportWeekRecipeDto> Recipes,
+    List<ExportWeekItemGroupDto> ItemGroups,
+    List<ExportWeekManualItemDto> ManualItems,
+    List<ExportWeekCheckDto> Checks);
+public record ExportPantryItemDto(string Ingredient, string? Category, decimal Quantity, string Unit);
+public record ExportTaskDto(int Id, string Title, int? IntervalDays, string? NextDueDate, string? Assignees, bool IsDone, string? LastCompletedUtc, string CreatedUtc);
+public record ExportOrderLineDto(string Name, decimal Quantity, string Unit, string? Category, bool IsPacked, bool NotAvailable);
+public record ExportOrderDto(int Id, string StoreName, string Status, string? Note, string CreatedUtc, string? ReadyUtc, List<ExportOrderLineDto> Lines);
+public record ExportPublishedRecipeDto(int CatalogId, string Title, int? SourceRecipeId);
+
 // ---------- Hjemmets opgaver ----------
 // IntervalDays null = engangsopgave. CurrentAssignee = hvis tur det er (fra rotation).
 public record HouseholdTaskDto(

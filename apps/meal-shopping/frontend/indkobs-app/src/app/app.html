@@ -9,6 +9,12 @@
 
 <main class="app-main">
   <router-outlet />
+
+  <footer class="app-footer">
+    <a routerLink="/privatliv">Privatlivspolitik</a>
+    <span aria-hidden="true">·</span>
+    <a routerLink="/handelsbetingelser">Handelsbetingelser</a>
+  </footer>
 </main>
 
 @if (auth.isLoggedIn()) {
