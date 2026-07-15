@@ -10,7 +10,7 @@ namespace IndkobsApp.Api.Controllers;
 
 [ApiController]
 [Route("api/ingredients")]
-[Authorize] // fælles opslagsdata, men kun for indloggede
+[Authorize] // husstandens egen varebank
 public class IngredientsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -22,16 +22,22 @@ public class IngredientsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IEnumerable<IngredientDto>> GetAll() =>
-        await _db.Ingredients.Include(i => i.Category).OrderBy(i => i.Name)
+    public async Task<IEnumerable<IngredientDto>> GetAll()
+    {
+        var hid = User.GetHouseholdId();
+        return await _db.Ingredients
+            .Where(i => i.HouseholdId == hid)
+            .Include(i => i.Category).OrderBy(i => i.Name)
             .Select(i => new IngredientDto(i.Id, i.Name, i.CategoryId, i.Category != null ? i.Category.Name : null))
             .ToListAsync();
+    }
 
     [HttpPost]
     public async Task<ActionResult<IngredientDto>> Create(IngredientUpsertDto dto)
     {
-        // Genbruger eksisterende ingrediens hvis navnet (normaliseret) allerede findes.
-        var ing = await _ingredients.GetOrCreateAsync(dto.Name, dto.CategoryId);
+        var hid = User.GetHouseholdId();
+        // Genbruger husstandens eksisterende ingrediens hvis navnet (normaliseret) findes.
+        var ing = await _ingredients.GetOrCreateAsync(hid, dto.Name, dto.CategoryId);
         if (dto.CategoryId.HasValue) ing.CategoryId = dto.CategoryId; // opdater kategori hvis angivet
         await _db.SaveChangesAsync();
         await _db.Entry(ing).Reference(i => i.Category).LoadAsync();
@@ -41,13 +47,14 @@ public class IngredientsController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, IngredientUpsertDto dto)
     {
-        var ing = await _db.Ingredients.FindAsync(id);
+        var hid = User.GetHouseholdId();
+        var ing = await _db.Ingredients.FirstOrDefaultAsync(i => i.Id == id && i.HouseholdId == hid);
         if (ing == null) return NotFound();
 
         var normalized = Ingredient.Normalize(dto.Name);
-        // Hvis navnet ændres, sørg for at det ikke kolliderer med en anden ingrediens.
+        // Hvis navnet ændres, sørg for at det ikke kolliderer med en anden af husstandens ingredienser.
         if (normalized != ing.NormalizedName &&
-            await _db.Ingredients.AnyAsync(i => i.NormalizedName == normalized && i.Id != id))
+            await _db.Ingredients.AnyAsync(i => i.HouseholdId == hid && i.NormalizedName == normalized && i.Id != id))
             return Conflict($"Ingrediensen '{dto.Name.Trim()}' findes allerede.");
 
         ing.Name = dto.Name.Trim();
@@ -60,7 +67,8 @@ public class IngredientsController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var ing = await _db.Ingredients.FindAsync(id);
+        var hid = User.GetHouseholdId();
+        var ing = await _db.Ingredients.FirstOrDefaultAsync(i => i.Id == id && i.HouseholdId == hid);
         if (ing == null) return NotFound();
 
         // Bloker sletning hvis ingrediensen er i brug (FK Restrict ville ellers fejle).

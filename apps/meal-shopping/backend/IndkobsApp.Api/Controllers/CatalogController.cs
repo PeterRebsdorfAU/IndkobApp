@@ -78,7 +78,7 @@ public class CatalogController : ControllerBase
             };
             foreach (var line in cat.Ingredients)
             {
-                var ing = await _ingredients.GetOrCreateAsync(line.Name);
+                var ing = await _ingredients.GetOrCreateAsync(hid, line.Name);
                 recipe.Ingredients.Add(new RecipeIngredient
                 {
                     Ingredient = ing,

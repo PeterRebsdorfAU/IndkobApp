@@ -204,7 +204,7 @@ public class WeeksController : ControllerBase
         // kobler vi den til/opretter en master-ingrediens, så den aggregeres pænt.
         if (ingredientId == null && !string.IsNullOrWhiteSpace(freeText))
         {
-            var ing = await _ingredients.GetOrCreateAsync(freeText);
+            var ing = await _ingredients.GetOrCreateAsync(User.GetHouseholdId(), freeText);
             await _db.SaveChangesAsync();
             ingredientId = ing.Id;
             freeText = null;

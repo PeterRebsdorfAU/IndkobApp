@@ -55,13 +55,15 @@ public class PantryController : ControllerBase
         Ingredient ing;
         if (dto.IngredientId is int ingId)
         {
-            var found = await _db.Ingredients.Include(i => i.Category).FirstOrDefaultAsync(i => i.Id == ingId);
+            // Kun husstandens egne ingredienser kan lægges på husstandens lager.
+            var found = await _db.Ingredients.Include(i => i.Category)
+                .FirstOrDefaultAsync(i => i.Id == ingId && i.HouseholdId == hid);
             if (found == null) return BadRequest("Ukendt ingrediens.");
             ing = found;
         }
         else if (!string.IsNullOrWhiteSpace(dto.IngredientName))
         {
-            ing = await _ingredients.GetOrCreateAsync(dto.IngredientName);
+            ing = await _ingredients.GetOrCreateAsync(hid, dto.IngredientName);
             await _db.SaveChangesAsync(); // sikrer Id
         }
         else return BadRequest("Angiv en ingrediens.");

@@ -153,7 +153,22 @@ if (mode == "addhousehold")
     cmd.Parameters.AddWithValue("e", email);
     cmd.Parameters.AddWithValue("p", hash);
     var id = (int)(await cmd.ExecuteScalarAsync())!;
-    Console.WriteLine($"OK: oprettede husstand '{name}' (login '{email}') med Id={id}. Starter uden data.");
+
+    // Ny husstand får sit eget standard-kategorisæt (kategorier er private pr. husstand).
+    var defaults = new (string Name, int Sort)[] {
+        ("Grønt",10),("Mejeri",20),("Kød",30),("Kolonial",40),
+        ("Frost",50),("Brød",60),("Non-food / Toilet",70),("Rengøring",80) };
+    foreach (var (catName, sort) in defaults)
+    {
+        await using var cc = new NpgsqlCommand(
+            @"INSERT INTO ""Categories"" (""Name"",""SortOrder"",""HouseholdId"") VALUES (@n,@s,@h);", db);
+        cc.Parameters.AddWithValue("n", catName);
+        cc.Parameters.AddWithValue("s", sort);
+        cc.Parameters.AddWithValue("h", id);
+        await cc.ExecuteNonQueryAsync();
+    }
+
+    Console.WriteLine($"OK: oprettede husstand '{name}' (login '{email}') med Id={id} + standard-kategorier. Starter uden data.");
     return 0;
 }
 

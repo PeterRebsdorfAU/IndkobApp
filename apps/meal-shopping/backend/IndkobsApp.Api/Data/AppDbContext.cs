@@ -42,15 +42,19 @@ public class AppDbContext : DbContext
         b.Entity<Category>(e =>
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(100);
-            e.HasIndex(x => x.Name).IsUnique();
+            // Unik pr. husstand (hver husstand har sin egen butiksopsætning).
+            e.HasIndex(x => new { x.HouseholdId, x.Name }).IsUnique();
+            // Restrict: husstands-sletning rydder eksplicit op i AdminController (afhængighedsorden).
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<Ingredient>(e =>
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
             e.Property(x => x.NormalizedName).IsRequired().HasMaxLength(150);
-            // Sikrer at samme ingrediens (trimmet/lowercased) ikke kan oprettes to gange.
-            e.HasIndex(x => x.NormalizedName).IsUnique();
+            // Sikrer at samme ingrediens (trimmet/lowercased) ikke kan oprettes to gange — PR. HUSSTAND.
+            e.HasIndex(x => new { x.HouseholdId, x.NormalizedName }).IsUnique();
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Category)
                 .WithMany(c => c.Ingredients)
                 .HasForeignKey(x => x.CategoryId)

@@ -86,7 +86,7 @@ public class ItemGroupsController : ControllerBase
         foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line.IngredientName)) continue;
-            var ing = await _ingredients.GetOrCreateAsync(line.IngredientName);
+            var ing = await _ingredients.GetOrCreateAsync(g.HouseholdId, line.IngredientName);
             g.Ingredients.Add(new ItemGroupIngredient
             {
                 Ingredient = ing,

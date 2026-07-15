@@ -16,10 +16,14 @@ public class Household
     public static string NormalizeEmail(string email) => (email ?? string.Empty).Trim().ToLowerInvariant();
 }
 
-/// <summary>Butikskategori brugt til at gruppere/sortere indkøbslisten.</summary>
+/// <summary>
+/// Butikskategori brugt til at gruppere/sortere indkøbslisten.
+/// PRIVAT pr. husstand — hver husstand har sin egen butiksrækkefølge.
+/// </summary>
 public class Category
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
 
@@ -27,12 +31,14 @@ public class Category
 }
 
 /// <summary>
-/// Normaliseret master-ingrediens. <see cref="NormalizedName"/> er trimmet +
-/// lowercased og har et unikt index, så "løg", "Løg" og " Løg " peger på samme række.
+/// Normaliseret ingrediens. <see cref="NormalizedName"/> er trimmet + lowercased og
+/// unik PR. HUSSTAND, så "løg"/"Løg" peger på samme række inden for husstanden —
+/// men husstande deler ikke varebank (privat butiksopsætning).
 /// </summary>
 public class Ingredient
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string NormalizedName { get; set; } = string.Empty;
 

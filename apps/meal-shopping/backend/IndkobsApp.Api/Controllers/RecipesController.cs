@@ -158,13 +158,14 @@ public class RecipesController : ControllerBase
         return NoContent();
     }
 
-    // Oversætter input-linjer til RecipeIngredient og sikrer normaliserede ingredienser.
+    // Oversætter input-linjer til RecipeIngredient og sikrer normaliserede ingredienser
+    // i husstandens egen varebank.
     private async Task ApplyLines(Recipe r, List<IngredientLineInputDto> lines)
     {
         foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line.IngredientName)) continue;
-            var ing = await _ingredients.GetOrCreateAsync(line.IngredientName);
+            var ing = await _ingredients.GetOrCreateAsync(r.HouseholdId, line.IngredientName);
             r.Ingredients.Add(new RecipeIngredient
             {
                 Ingredient = ing,

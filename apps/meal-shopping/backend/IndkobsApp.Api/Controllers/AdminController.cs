@@ -63,6 +63,10 @@ public class AdminController : ControllerBase
         _db.Households.Add(household);
         await _db.SaveChangesAsync();
 
+        // Ny husstand starter med sit eget standard-kategorisæt (kategorier er private).
+        DbSeeder.SeedDefaultCategories(_db, household.Id);
+        await _db.SaveChangesAsync();
+
         return Ok(new HouseholdDto(household.Id, household.Name, household.Email));
     }
 
@@ -72,7 +76,20 @@ public class AdminController : ControllerBase
         if (!AdminKeyOk()) return Unauthorized();
         var h = await _db.Households.FindAsync(id);
         if (h == null) return NotFound();
-        // Cascade fjerner husstandens opskrifter, varegrupper og uger.
+
+        // Slet i afhængighedsorden: først alt der refererer ingredienser (Restrict),
+        // så husstandens varebank/kategorier, og til sidst selve husstanden.
+        _db.Recipes.RemoveRange(_db.Recipes.Where(r => r.HouseholdId == id));
+        _db.ItemGroups.RemoveRange(_db.ItemGroups.Where(g => g.HouseholdId == id));
+        _db.Weeks.RemoveRange(_db.Weeks.Where(w => w.HouseholdId == id));
+        _db.PantryItems.RemoveRange(_db.PantryItems.Where(p => p.HouseholdId == id));
+        _db.HouseholdTasks.RemoveRange(_db.HouseholdTasks.Where(t => t.HouseholdId == id));
+        await _db.SaveChangesAsync();
+
+        _db.Ingredients.RemoveRange(_db.Ingredients.Where(i => i.HouseholdId == id));
+        _db.Categories.RemoveRange(_db.Categories.Where(c => c.HouseholdId == id));
+        await _db.SaveChangesAsync();
+
         _db.Households.Remove(h);
         await _db.SaveChangesAsync();
         return NoContent();
