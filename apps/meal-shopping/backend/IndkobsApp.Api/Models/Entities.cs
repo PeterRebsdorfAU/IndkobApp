@@ -57,6 +57,9 @@ public class Recipe
     public string? Note { get; set; }
     public int Servings { get; set; } = 4; // basis-portioner
 
+    /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
+    public string? Method { get; set; }
+
     public List<RecipeIngredient> Ingredients { get; set; } = new();
 }
 
@@ -189,6 +192,9 @@ public class CatalogRecipe
     public int Servings { get; set; } = 4;
     /// <summary>Komma-separerede tags til filtrering (fx "hurtig,vegetar").</summary>
     public string? Tags { get; set; }
+
+    /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
+    public string? Method { get; set; }
 
     /// <summary>
     /// Sat hvis opskriften er PUBLICERET af en husstand (community-deling) — null for
