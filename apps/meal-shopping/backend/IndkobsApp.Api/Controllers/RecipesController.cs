@@ -58,7 +58,8 @@ public class RecipesController : ControllerBase
             HouseholdId = User.GetHouseholdId(),
             Name = dto.Name.Trim(),
             Note = dto.Note,
-            Servings = dto.Servings
+            Servings = dto.Servings,
+            Method = string.IsNullOrWhiteSpace(dto.Method) ? null : dto.Method.Trim()
         };
         await ApplyLines(r, dto.Ingredients);
         _db.Recipes.Add(r);
@@ -77,6 +78,7 @@ public class RecipesController : ControllerBase
         r.Name = dto.Name.Trim();
         r.Note = dto.Note;
         r.Servings = dto.Servings;
+        r.Method = string.IsNullOrWhiteSpace(dto.Method) ? null : dto.Method.Trim();
 
         // Enkleste robuste strategi: ryd linjer og byg dem op igen fra input.
         _db.RecipeIngredients.RemoveRange(r.Ingredients);
@@ -130,6 +132,7 @@ public class RecipesController : ControllerBase
         existing.Title = r.Name;
         existing.Note = r.Note;
         existing.Servings = r.Servings;
+        existing.Method = r.Method; // fremgangsmåde følger med i snapshottet
         foreach (var ri in r.Ingredients)
         {
             existing.Ingredients.Add(new CatalogRecipeIngredient
@@ -180,5 +183,5 @@ public class RecipesController : ControllerBase
         r.Ingredients.Select(ri => new IngredientLineDto(
             ri.Id, ri.IngredientId, ri.Ingredient.Name, ri.Ingredient.Category?.Name, ri.Quantity, ri.Unit))
             .OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList(),
-        isPublic);
+        r.Method, isPublic);
 }

@@ -40,6 +40,12 @@ import { EmptyState } from '../shared/empty-state';
                 <span class="pill">{{ i.ingredientName }} {{ i.quantity }} {{ label(i.unit) }}</span>
               }
             </div>
+            @if (r.method) {
+              <div style="margin-top:.6rem">
+                <div class="muted" style="font-weight:600;margin-bottom:.2rem">Fremgangsmåde</div>
+                <div style="white-space:pre-wrap">{{ r.method }}</div>
+              </div>
+            }
             <div style="margin-top:.5rem">
               @if (!r.isPublic) {
                 <button class="small" (click)="publish(r)">🌍 Del på Inspiration</button>
@@ -71,6 +77,11 @@ import { EmptyState } from '../shared/empty-state';
           <div class="field">
             <label>Note (valgfri)</label>
             <textarea [(ngModel)]="form.note"></textarea>
+          </div>
+          <div class="field">
+            <label>Fremgangsmåde (valgfri)</label>
+            <textarea [(ngModel)]="form.method" rows="6"
+              placeholder="Beskriv trinene, fx: 1) Brun kødet. 2) Tilsæt løg og hvidløg. 3) Lad simre 15 min."></textarea>
           </div>
 
           <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" />
@@ -114,6 +125,12 @@ import { EmptyState } from '../shared/empty-state';
               <span class="pill">{{ i.name }} {{ i.quantity }} {{ label(i.unit) }}</span>
             }
           </div>
+          @if (c.method) {
+            <div style="margin-top:.6rem">
+              <div class="muted" style="font-weight:600;margin-bottom:.2rem">Fremgangsmåde</div>
+              <div style="white-space:pre-wrap">{{ c.method }}</div>
+            </div>
+          }
         </div>
       } @empty {
         <div class="empty">Ingen opskrifter matcher søgningen.</div>
@@ -181,7 +198,7 @@ export class RecipesPage implements OnInit {
 
   startNew() {
     this.error.set('');
-    this.editing.set({ id: null, name: '', note: '', servings: 4, ingredients: [] });
+    this.editing.set({ id: null, name: '', note: '', servings: 4, ingredients: [], method: '' });
   }
 
   edit(r: Recipe) {
@@ -189,7 +206,7 @@ export class RecipesPage implements OnInit {
     const ingredients: IngredientLineInput[] = r.ingredients.map(i => ({
       ingredientId: i.ingredientId, ingredientName: i.ingredientName, quantity: i.quantity, unit: i.unit
     }));
-    this.editing.set({ id: r.id, name: r.name, note: r.note ?? '', servings: r.servings, ingredients });
+    this.editing.set({ id: r.id, name: r.name, note: r.note ?? '', servings: r.servings, ingredients, method: r.method ?? '' });
   }
 
   cancel() { this.editing.set(null); }
@@ -202,7 +219,8 @@ export class RecipesPage implements OnInit {
       name: form.name.trim(),
       note: form.note?.trim() || null,
       servings: Number(form.servings) || 1,
-      ingredients: form.ingredients.filter(l => l.ingredientName.trim())
+      ingredients: form.ingredients.filter(l => l.ingredientName.trim()),
+      method: form.method?.trim() || null
     };
     this.saving.set(true);
     const obs = form.id

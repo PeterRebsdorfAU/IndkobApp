@@ -45,6 +45,7 @@ public class CatalogController : ControllerBase
             (r.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             r.Ingredients.Select(i => new CatalogLineDto(i.Name, i.Quantity, i.Unit))
                 .OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+            r.Method,
             r.SourceHouseholdId is int shid ? names.GetValueOrDefault(shid) : null));
     }
 
@@ -74,7 +75,8 @@ public class CatalogController : ControllerBase
                 HouseholdId = hid,
                 Name = cat.Title,
                 Note = cat.Note,
-                Servings = cat.Servings
+                Servings = cat.Servings,
+                Method = cat.Method // fremgangsmåde kopieres med over
             };
             foreach (var line in cat.Ingredients)
             {
