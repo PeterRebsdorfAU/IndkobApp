@@ -10,14 +10,25 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
   selector: 'page-shopping-list',
   imports: [FormsModule, RouterLink],
   template: `
-    <h1>Indkøbsliste</h1>
-
     @if (list(); as l) {
-      <div class="spread">
-        <div class="muted">Uge {{ l.weekNumber }}, {{ l.year }}</div>
-        <div class="row">
-          <button class="small" (click)="share()">🔗 Del liste</button>
-          <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
+      <div class="hero">
+        <span class="eyebrow">Indkøbsliste</span>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="track" cx="50" cy="50" r="42" fill="none" stroke-width="10" />
+            <circle class="bar" cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round"
+                    stroke-dasharray="264" [attr.stroke-dashoffset]="264 - 264 * progress()"
+                    transform="rotate(-90 50 50)" />
+            <text x="50" y="47" text-anchor="middle" font-size="22">{{ checkedCount() }}</text>
+            <text x="50" y="66" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.72)">af {{ totalCount() }}</text>
+          </svg>
+          <div class="grow">
+            <div class="hero-title" style="font-size:1.55rem">{{ headline() }}</div>
+            <div class="hero-sub">Uge {{ l.weekNumber }}, {{ l.year }} · {{ remaining() }} tilbage</div>
+            <div class="hero-actions">
+              <button class="accent small" (click)="share()">Del liste</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -81,7 +92,7 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
                   <div class="muted">Læg de {{ checkedCount() }} afkrydsede varer på køkkenlageret med ét tryk.</div>
                 </div>
                 <button class="primary small" (click)="stock()" [disabled]="stocking()">
-                  {{ stocking() ? '…' : '🥫 Læg på lager' }}
+                  {{ stocking() ? '…' : 'Læg på lager' }}
                 </button>
               </div>
               @if (stockMsg()) { <div class="muted" style="margin-top:.4rem">{{ stockMsg() }}</div> }
@@ -149,6 +160,15 @@ export class ShoppingListPage implements OnInit, OnDestroy {
   totalCount = computed(() => this.list()?.groups.reduce((s, g) => s + g.lines.length, 0) ?? 0);
   checkedCount = computed(() =>
     this.list()?.groups.reduce((s, g) => s + g.lines.filter(l => l.isChecked).length, 0) ?? 0);
+  remaining = computed(() => Math.max(0, this.totalCount() - this.checkedCount()));
+  progress = computed(() => { const t = this.totalCount(); return t ? this.checkedCount() / t : 0; });
+  headline = computed(() => {
+    const t = this.totalCount(), c = this.checkedCount();
+    if (t === 0) return 'Tom liste';
+    if (c >= t) return 'Alt er købt';
+    if (c === 0) return 'Klar til indkøb';
+    return 'Godt i gang';
+  });
 
   units = UNITS;
   label = unitLabel;

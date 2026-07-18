@@ -9,7 +9,23 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
   selector: 'page-week-plan',
   imports: [FormsModule, RouterLink],
   template: `
-    <h1>Ugeplan</h1>
+    @if (detail(); as d) {
+      <div class="hero">
+        <span class="eyebrow">Ugeplan</span>
+        <div class="hero-title">Uge {{ d.weekNumber }}</div>
+        <div class="hero-sub">{{ d.year }} · {{ d.recipes.length }} retter · {{ d.itemGroups.length }} varegrupper</div>
+        <div class="hero-actions">
+          <a routerLink="/indkob"><button class="accent small">Se indkøbsliste →</button></a>
+          <button class="ghost small" style="color:#fff" (click)="deleteWeek(d.id)">Slet uge</button>
+        </div>
+      </div>
+    } @else {
+      <div class="hero">
+        <span class="eyebrow">Ugeplan</span>
+        <div class="hero-title">Planlæg din uge</div>
+        <div class="hero-sub">Vælg ugens retter og få én samlet indkøbsliste.</div>
+      </div>
+    }
 
     <!-- Uge-vælger -->
     <div class="card">
@@ -38,14 +54,6 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
     </div>
 
     @if (detail(); as d) {
-      <div class="spread">
-        <h2>Uge {{ d.weekNumber }}, {{ d.year }}</h2>
-        <div class="row">
-          <a routerLink="/indkob"><button class="small primary">🛒 Indkøbsliste</button></a>
-          <button class="danger" (click)="deleteWeek(d.id)">Slet uge</button>
-        </div>
-      </div>
-
       <!-- Retter i ugen: vælg DAG først, så ret -->
       <div class="card">
         <h3>Retter</h3>
@@ -61,10 +69,10 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
             @for (wr of g.recipes; track wr.id) {
               <div class="list-item">
                 <div class="grow">
-                  <div>{{ wr.recipeName }} @if (wr.cookedUtc) { <span class="badge">✅ lavet</span> }</div>
+                  <div><b>{{ wr.recipeName }}</b> @if (wr.cookedUtc) { <span class="badge ready">Lavet</span> }</div>
                   <div class="muted">Basis {{ wr.baseServings }} pers.</div>
                   @if (!wr.cookedUtc) {
-                    <button class="small" style="margin-top:.25rem" (click)="markCooked(wr.id)">🍳 Lavet</button>
+                    <button class="small" style="margin-top:.35rem" (click)="markCooked(wr.id)">Markér som lavet</button>
                   } @else {
                     <button class="btn-link" style="font-size:.75rem" (click)="unmarkCooked(wr.id)">fortryd</button>
                   }

@@ -7,8 +7,11 @@ import { PantryItem, Ingredient, Unit, UNITS, unitLabel } from '../models';
   selector: 'page-pantry',
   imports: [FormsModule],
   template: `
-    <h1>Køkkenlager</h1>
-    <p class="muted">Hvad I har hjemme. Indkøbslisten trækker det automatisk fra, så I kun køber det I mangler.</p>
+    <div class="hero">
+      <span class="eyebrow">Køkkenlager</span>
+      <div class="hero-title">Hvad har I hjemme?</div>
+      <div class="hero-sub">Indkøbslisten trækker lageret fra, så I kun køber det I mangler.</div>
+    </div>
 
     <!-- Tilføj vare -->
     <div class="card">

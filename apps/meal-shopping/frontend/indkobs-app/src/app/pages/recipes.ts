@@ -9,12 +9,16 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
   selector: 'page-recipes',
   imports: [FormsModule, IngredientLinesEditor],
   template: `
-    <h1>Retter</h1>
+    <div class="hero">
+      <span class="eyebrow">Retter</span>
+      <div class="hero-title">Dine retter</div>
+      <div class="hero-sub">Opret egne retter — eller find inspiration i kataloget.</div>
+    </div>
 
     <!-- Faner: egne retter vs. inspiration fra kataloget -->
-    <div class="row" style="margin-bottom:.8rem">
-      <button class="grow" [class.primary]="tab() === 'mine'" (click)="tab.set('mine')">Mine retter</button>
-      <button class="grow" [class.primary]="tab() === 'inspiration'" (click)="tab.set('inspiration')">✨ Inspiration</button>
+    <div class="segment" style="width:100%; margin-bottom:.9rem">
+      <button [class.active]="tab() === 'mine'" (click)="tab.set('mine')">Mine retter</button>
+      <button [class.active]="tab() === 'inspiration'" (click)="tab.set('inspiration')">Inspiration</button>
     </div>
 
     @if (tab() === 'mine') {
@@ -25,7 +29,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
           <div class="card">
             <div class="spread">
               <div class="grow">
-                <h3>{{ r.name }} @if (r.isPublic) { <span class="badge">🌍 offentlig</span> }</h3>
+                <h3>{{ r.name }} @if (r.isPublic) { <span class="badge">Offentlig</span> }</h3>
                 <div class="muted">{{ r.servings }} pers. · {{ r.ingredients.length }} ingredienser</div>
               </div>
               <div class="row">
@@ -41,7 +45,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
             </div>
             <div style="margin-top:.5rem">
               @if (!r.isPublic) {
-                <button class="small" (click)="publish(r)">🌍 Del på Inspiration</button>
+                <button class="small" (click)="publish(r)">Del på Inspiration</button>
               } @else {
                 <button class="small" (click)="unpublish(r)">Fjern fra Inspiration</button>
               }
@@ -84,10 +88,10 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
         @if (weekLabel()) { <span>og lægges på <b>{{ weekLabel() }}</b></span> }.</p>
 
       <div class="field">
-        <input placeholder="🔍 Søg titel, tag eller ingrediens…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+        <input placeholder="Søg titel, tag eller ingrediens…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
       </div>
 
-      @if (added()) { <div class="card" style="border-color:var(--primary)">✅ {{ added() }}</div> }
+      @if (added()) { <div class="card accent">{{ added() }}</div> }
 
       @for (c of filteredCatalog(); track c.id) {
         <div class="card">

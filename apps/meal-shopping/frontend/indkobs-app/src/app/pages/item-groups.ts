@@ -8,8 +8,11 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
   selector: 'page-item-groups',
   imports: [FormsModule, IngredientLinesEditor],
   template: `
-    <h1>Varegrupper</h1>
-    <p class="muted">Faste sæt varer der ikke er retter (fx Frokost, Toilet, Rengøring).</p>
+    <div class="hero">
+      <span class="eyebrow">Varegrupper</span>
+      <div class="hero-title">Faste vare-sæt</div>
+      <div class="hero-sub">Sæt af varer der ikke er retter (fx Frokost, Toilet, Rengøring).</div>
+    </div>
 
     @if (!editing()) {
       <button class="primary" (click)="startNew()">+ Ny varegruppe</button>

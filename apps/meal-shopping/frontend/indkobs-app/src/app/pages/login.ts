@@ -9,14 +9,14 @@ import { LogoMark } from '../shared/logo';
   imports: [FormsModule, LogoMark],
   template: `
     <div class="login-wrap">
-      <div class="card login-card">
-        <div class="login-brand">
-          <app-logo [size]="52" />
-          <h1>Madplan &amp; Indkøb</h1>
-          <p class="muted">Log ind med din husstands konto.</p>
+      <div class="login-card">
+        <div class="login-hero">
+          <span class="logo-chip"><app-logo [size]="44" /></span>
+          <h1>Madplan</h1>
+          <p>Log ind med din husstands konto.</p>
         </div>
 
-        <form (ngSubmit)="submit()">
+        <form class="login-form" (ngSubmit)="submit()">
           <div class="field">
             <label>Brugernavn</label>
             <input type="text" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
@@ -29,7 +29,7 @@ import { LogoMark } from '../shared/logo';
 
           @if (error()) { <div class="error">{{ error() }}</div> }
 
-          <button class="primary" type="submit" [disabled]="loading()" style="width:100%">
+          <button class="primary" type="submit" [disabled]="loading()" style="width:100%; margin-top:.3rem">
             {{ loading() ? 'Logger ind…' : 'Log ind' }}
           </button>
         </form>
@@ -37,12 +37,22 @@ import { LogoMark } from '../shared/logo';
     </div>
   `,
   styles: [`
-    .login-wrap { min-height: 82vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0; }
-    .login-card { width: 100%; max-width: 380px; padding: 1.6rem 1.4rem; box-shadow: var(--shadow-md); }
-    .login-brand { text-align: center; margin-bottom: 1.3rem; }
-    .login-brand app-logo { margin-bottom: .7rem; }
-    .login-brand h1 { font-size: 1.35rem; margin: 0 0 .2rem; }
-    .login-brand p { margin: 0; }
+    .login-wrap { min-height: 86vh; display: flex; align-items: center; justify-content: center; padding: 1.2rem 0; }
+    .login-card {
+      width: 100%; max-width: 392px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow-lift);
+    }
+    .login-hero {
+      text-align: center; color: #fff; padding: 2rem 1.6rem 1.6rem;
+      background: radial-gradient(130% 150% at 100% 0%, #1a8f60 0%, #0c5638 58%, #0a4a30 100%);
+    }
+    .logo-chip {
+      display: inline-flex; background: #fff; padding: 10px; border-radius: 18px;
+      box-shadow: 0 12px 26px -12px rgba(0,0,0,.45);
+    }
+    .login-hero h1 { color: #fff; font-size: 1.9rem; margin: .8rem 0 .25rem; }
+    .login-hero p { color: rgba(255,255,255,.82); margin: 0; font-size: .92rem; }
+    .login-form { padding: 1.5rem 1.6rem 1.7rem; }
   `]
 })
 export class LoginPage {
