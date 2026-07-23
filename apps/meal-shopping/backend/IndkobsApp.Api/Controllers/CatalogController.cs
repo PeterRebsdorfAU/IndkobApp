@@ -18,11 +18,11 @@ namespace IndkobsApp.Api.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IngredientService _ingredients;
-    public CatalogController(AppDbContext db, IngredientService ingredients)
+    private readonly RecipeAdoptionService _adoption;
+    public CatalogController(AppDbContext db, RecipeAdoptionService adoption)
     {
         _db = db;
-        _ingredients = ingredients;
+        _adoption = adoption;
     }
 
     [HttpGet("recipes")]
@@ -86,34 +86,11 @@ public class CatalogController : ControllerBase
         if (cat == null) return NotFound();
 
         // Kopiér til husstandens egne opskrifter (genbrug hvis samme navn allerede findes,
-        // så gentagne "Tilføj" ikke giver dubletter).
-        var recipe = await _db.Recipes
-            .FirstOrDefaultAsync(r => r.HouseholdId == hid && r.Name == cat.Title);
-        if (recipe == null)
-        {
-            recipe = new Recipe
-            {
-                HouseholdId = hid,
-                Name = cat.Title,
-                Note = cat.Note,
-                Servings = cat.Servings,
-                Method = cat.Method, // fremgangsmåde kopieres med over
-                Image = cat.Image,   // billedet kopieres med i den nye opskrift
-                ImageContentType = cat.ImageContentType
-            };
-            foreach (var line in cat.Ingredients)
-            {
-                var ing = await _ingredients.GetOrCreateAsync(hid, line.Name);
-                recipe.Ingredients.Add(new RecipeIngredient
-                {
-                    Ingredient = ing,
-                    Quantity = line.Quantity,
-                    Unit = line.Unit
-                });
-            }
-            _db.Recipes.Add(recipe);
-            await _db.SaveChangesAsync();
-        }
+        // så gentagne "Tilføj" ikke giver dubletter). Fælles adoptions-logik.
+        var recipe = await _adoption.AdoptAsync(
+            hid, cat.Title, cat.Note, cat.Servings,
+            cat.Method, cat.Image, cat.ImageContentType,
+            cat.Ingredients.Select(l => new RecipeAdoptionService.AdoptLine(l.Name, l.Quantity, l.Unit)).ToList());
 
         // Læg evt. på en uge med det samme (kun husstandens egen uge).
         int? weekId = null;

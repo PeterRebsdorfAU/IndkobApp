@@ -101,6 +101,17 @@ public record AdoptResultDto(int RecipeId, string RecipeName, int? WeekId);
 // ---------- Deling af indkøbsliste ----------
 public record ShareTokenDto(string Token);
 
+// ---------- Selektiv deling af opskrifter (delt med én udvalgt modtager) ----------
+// Input til POST /api/recipes/{id}/share: modtagerens login-email (normaliseres ved opslag).
+public record ShareRecipeDto(string Email);
+// Én modtager en opskrift er delt med (til ejerens "delt med"-liste).
+public record RecipeShareTargetDto(int TargetHouseholdId, string HouseholdName, string CreatedUtc);
+// En opskrift der er delt TIL min husstand (skrivebeskyttet visning + "Tilføj til mine").
+// Ingredienserne er kilde-husstandens navne/mængder; de mappes til min egen varebank ved adoption.
+public record SharedRecipeDto(
+    int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients,
+    string? Method, bool HasImage, string SharedByHouseholdName, string CreatedUtc);
+
 // ---------- Ordrer (butiks-flow) ----------
 public record StoreDto(string Name);
 public record OrderLineDto(int Id, string Name, decimal Quantity, Unit Unit, string? CategoryName, bool IsPacked, bool NotAvailable);

@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
-import { Recipe, RecipeUpsert, Ingredient, IngredientLineInput, CatalogRecipe, unitLabel } from '../models';
+import { Recipe, RecipeUpsert, Ingredient, IngredientLineInput, CatalogRecipe, RecipeShareTarget, SharedRecipe, unitLabel } from '../models';
 import { IngredientLinesEditor } from '../shared/ingredient-lines';
 import { EmptyState } from '../shared/empty-state';
 import { SecureImage } from '../shared/secure-image';
@@ -23,6 +23,9 @@ import { ToastService } from '../shared/toast';
     <div class="segment" style="width:100%; margin-bottom:.9rem">
       <button [class.active]="tab() === 'mine'" (click)="tab.set('mine')">Mine retter</button>
       <button [class.active]="tab() === 'inspiration'" (click)="tab.set('inspiration')">Inspiration</button>
+      <button [class.active]="tab() === 'delt'" (click)="tab.set('delt')">
+        Delt med mig @if (sharedWithMe().length) { <span class="badge">{{ sharedWithMe().length }}</span> }
+      </button>
     </div>
 
     @if (tab() === 'mine') {
@@ -56,13 +59,45 @@ import { ToastService } from '../shared/toast';
                 <div style="white-space:pre-wrap">{{ r.method }}</div>
               </div>
             }
-            <div style="margin-top:.5rem">
+            <div class="row-wrap" style="margin-top:.5rem">
               @if (!r.isPublic) {
                 <button class="small" (click)="publish(r)">Del på Inspiration</button>
               } @else {
                 <button class="small" (click)="unpublish(r)">Fjern fra Inspiration</button>
               }
+              <button class="small" (click)="toggleShare(r)">
+                {{ shareOpen() === r.id ? 'Skjul deling' : 'Del med…' }}
+              </button>
             </div>
+
+            @if (shareOpen() === r.id) {
+              <div class="card accent" style="margin-top:.6rem">
+                <div class="muted" style="font-weight:600;margin-bottom:.35rem">Del "{{ r.name }}" med en bestemt husstand</div>
+                <div class="row">
+                  <input class="grow" type="email" placeholder="Modtagerens login-email"
+                    [ngModel]="shareEmail()" (ngModelChange)="shareEmail.set($event)"
+                    (keyup.enter)="doShare(r)" />
+                  <button class="primary small" (click)="doShare(r)" [disabled]="sharing()">Del</button>
+                </div>
+                <div class="muted" style="font-size:.8rem;margin-top:.3rem">
+                  Kun den valgte husstand kan se opskriften under "Delt med mig".
+                </div>
+
+                @if (shares().length) {
+                  <div style="margin-top:.6rem">
+                    <div class="muted" style="font-weight:600;margin-bottom:.25rem">Delt med</div>
+                    @for (s of shares(); track s.targetHouseholdId) {
+                      <div class="spread" style="margin-bottom:.25rem">
+                        <span class="pill">{{ s.householdName }}</span>
+                        <button class="small danger" (click)="doUnshare(r, s)">Fjern</button>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="muted" style="font-size:.82rem;margin-top:.5rem">Endnu ikke delt med nogen.</div>
+                }
+              </div>
+            }
           </div>
         } @empty {
           <app-empty-state icon="🍽️" title="Ingen retter endnu"
@@ -190,6 +225,46 @@ import { ToastService } from '../shared/toast';
         <div class="empty">Ingen opskrifter matcher søgningen.</div>
       }
     }
+
+    @if (tab() === 'delt') {
+      <p class="muted">Opskrifter en anden husstand har delt direkte med jer. Tryk "Tilføj til mine"
+        for at kopiere en over til dine egne retter.</p>
+
+      @if (added()) { <div class="card accent">{{ added() }}</div> }
+
+      @for (s of sharedWithMe(); track s.id) {
+        <div class="card">
+          @if (s.hasImage) {
+            <secure-image [src]="sharedImageUrl(s.id)" [alt]="s.name" />
+          }
+          <div class="spread">
+            <div class="grow">
+              <h3>{{ s.name }}</h3>
+              <div class="muted">{{ s.servings }} pers. · {{ s.ingredients.length }} ingredienser · delt af {{ s.sharedByHouseholdName }}</div>
+            </div>
+            <button class="primary small" (click)="adoptShared(s)" [disabled]="adopting() === s.id">
+              {{ adopting() === s.id ? '…' : '+ Tilføj til mine' }}
+            </button>
+          </div>
+          @if (s.note) { <div class="muted" style="margin-top:.4rem">{{ s.note }}</div> }
+          <div class="row-wrap" style="margin-top:.5rem">
+            @for (i of s.ingredients; track i.id) {
+              <span class="pill">{{ i.ingredientName }} {{ i.quantity }} {{ label(i.unit) }}</span>
+            }
+          </div>
+          @if (s.method) {
+            <div style="margin-top:.6rem">
+              <div class="muted" style="font-weight:600;margin-bottom:.2rem">Fremgangsmåde</div>
+              <div style="white-space:pre-wrap">{{ s.method }}</div>
+            </div>
+          }
+        </div>
+      } @empty {
+        <app-empty-state icon="🤝" title="Ingen delte opskrifter endnu"
+          text="Når en anden husstand deler en opskrift direkte med jer, dukker den op her.">
+        </app-empty-state>
+      }
+    }
   `
 })
 export class RecipesPage implements OnInit {
@@ -217,9 +292,18 @@ export class RecipesPage implements OnInit {
   recipeImageUrl = (id: number) => this.api.recipeImageUrl(id);
   catalogImageUrl = (id: number) => this.api.catalogImageUrl(id);
 
-  // Inspiration
-  tab = signal<'mine' | 'inspiration'>('mine');
+  // Inspiration + selektiv deling
+  tab = signal<'mine' | 'inspiration' | 'delt'>('mine');
   catalog = signal<CatalogRecipe[]>([]);
+
+  // Selektiv deling: "Del med…"-panel pr. egen opskrift.
+  shareOpen = signal<number | null>(null);   // hvilken opskrift har panelet åbent
+  shareEmail = signal('');
+  shares = signal<RecipeShareTarget[]>([]);   // modtagere for den åbne opskrift
+  sharing = signal(false);
+  // "Delt med mig": opskrifter delt TIL min husstand.
+  sharedWithMe = signal<SharedRecipe[]>([]);
+  sharedImageUrl = (id: number) => this.api.sharedRecipeImageUrl(id);
   query = signal('');
   adopting = signal<number | null>(null);
   added = signal('');
@@ -245,6 +329,7 @@ export class RecipesPage implements OnInit {
       error: () => this.scanEnabled.set(false)
     });
     this.api.getCatalog().subscribe(c => this.catalog.set(c));
+    this.loadSharedWithMe();
     // Vis hvilken uge "Tilføj" lægger retten på (den senest valgte uge).
     const wid = this.weekState.selectedWeekId();
     if (wid) this.api.getWeek(wid).subscribe(w => this.weekLabel.set(`uge ${w.weekNumber}, ${w.year}`));
@@ -420,6 +505,63 @@ export class RecipesPage implements OnInit {
     this.api.unpublishRecipe(r.id).subscribe(() => {
       this.load();
       this.api.getCatalog().subscribe(c => this.catalog.set(c));
+    });
+  }
+
+  // ---------- Selektiv deling: del én opskrift med én udvalgt modtager ----------
+  toggleShare(r: Recipe) {
+    if (this.shareOpen() === r.id) { this.shareOpen.set(null); return; }
+    this.shareOpen.set(r.id);
+    this.shareEmail.set('');
+    this.shares.set([]);
+    this.api.getRecipeShares(r.id).subscribe(list => this.shares.set(list));
+  }
+
+  doShare(r: Recipe) {
+    const email = this.shareEmail().trim();
+    if (!email) { this.toast.error('Skriv modtagerens email.'); return; }
+    this.sharing.set(true);
+    this.api.shareRecipe(r.id, email).subscribe({
+      next: target => {
+        this.sharing.set(false);
+        this.shareEmail.set('');
+        this.toast.success(`"${r.name}" er delt med ${target.householdName}.`);
+        this.api.getRecipeShares(r.id).subscribe(list => this.shares.set(list));
+      },
+      error: err => {
+        this.sharing.set(false);
+        this.toast.error(err?.status === 404 ? 'Ingen konto med den email.' : 'Kunne ikke dele opskriften.');
+      }
+    });
+  }
+
+  doUnshare(r: Recipe, s: RecipeShareTarget) {
+    this.api.unshareRecipe(r.id, s.targetHouseholdId).subscribe({
+      next: () => {
+        this.toast.success(`Deling med ${s.householdName} er fjernet.`);
+        this.api.getRecipeShares(r.id).subscribe(list => this.shares.set(list));
+      },
+      error: () => this.toast.error('Kunne ikke fjerne delingen.')
+    });
+  }
+
+  // ---------- "Delt med mig": adoptér en opskrift delt til min husstand ----------
+  loadSharedWithMe() {
+    this.api.getSharedWithMe().subscribe(list => this.sharedWithMe.set(list));
+  }
+
+  adoptShared(s: SharedRecipe) {
+    this.adopting.set(s.id);
+    this.added.set('');
+    this.api.adoptSharedRecipe(s.id).subscribe({
+      next: res => {
+        this.adopting.set(null);
+        this.added.set(`"${res.recipeName}" er tilføjet til dine retter. Læg den på en uge for at få den på indkøbslisten.`);
+        this.load();
+        this.loadIngredients();
+        this.toast.success(`"${res.recipeName}" er tilføjet til dine retter.`);
+      },
+      error: () => { this.adopting.set(null); this.toast.error('Kunne ikke tilføje opskriften.'); }
     });
   }
 }

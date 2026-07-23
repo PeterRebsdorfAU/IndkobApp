@@ -298,6 +298,27 @@ public class HouseholdTask
 }
 
 /// <summary>
+/// Selektiv deling af én opskrift med én udvalgt modtager-husstand (v1).
+/// Adskilt fra <see cref="CatalogRecipe"/> (som er "publicér til ALLE"): en <c>RecipeShare</c>
+/// giver kun den valgte modtager-husstand adgang til at se og adoptere opskriften.
+/// Kun ejer-husstanden (opskriftens <see cref="Recipe.HouseholdId"/>) kan oprette/fjerne delingen.
+/// Unikt pr. (RecipeId, TargetHouseholdId), så gentagen deling er idempotent.
+/// </summary>
+public class RecipeShare
+{
+    public int Id { get; set; }
+
+    /// <summary>Den delte opskrift. Slettes opskriften, fjernes delingen (cascade).</summary>
+    public int RecipeId { get; set; }
+    public Recipe Recipe { get; set; } = null!;
+
+    /// <summary>Modtager-husstanden delingen giver adgang til (identificeret via login-email ved deling).</summary>
+    public int TargetHouseholdId { get; set; }
+
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
 /// Delings-token for en uges indkøbsliste: giver læse-/afkrydsningsadgang
 /// via link UDEN login (fx til den der handler).
 /// </summary>
