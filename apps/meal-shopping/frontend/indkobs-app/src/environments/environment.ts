@@ -2,5 +2,13 @@
 // fra (localhost på PC, PC'ens LAN-IP på telefon). Se src/app/api.ts.
 export const environment = {
   production: false,
-  apiBase: ''
+  apiBase: '',
+  // Fejllogning & overvågning (T6). Tom => Sentry slås fra (no-op). Sæt en DSN her lokalt for at
+  // teste fejl-rapportering i dev; i prod injiceres den ved build (se environment.prod.ts).
+  sentryDsn: '',
+  // Feature-flags: skjuler UI uden at slette koden. Sæt til true for at vise igen.
+  features: {
+    retailerOrders: false, // "Send til butik" + "Mine ordrer" på indkøbssiden (midlertidigt skjult)
+    supportContact: false  // "Kontakt support"-knap på FAQ/hjælp-siden (midlertidigt skjult)
+  }
 };

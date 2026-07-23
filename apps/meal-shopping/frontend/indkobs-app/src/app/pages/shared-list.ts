@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Api } from '../api';
 import { ShoppingList, ShoppingLine, unitLabel } from '../models';
+import { LogoMark } from '../shared/logo';
 
 /**
  * Offentlig del-side: viser en DELT indkøbsliste via token i URL'en (/del/:token).
@@ -9,14 +10,19 @@ import { ShoppingList, ShoppingLine, unitLabel } from '../models';
  */
 @Component({
   selector: 'page-shared-list',
+  imports: [LogoMark],
   template: `
-    <h1>🛒 Indkøbsliste</h1>
+    <div class="hero">
+      <span class="eyebrow" style="align-items:center">
+        <app-logo [size]="20" /> Madplan
+      </span>
+      <div class="hero-title" style="font-size:1.8rem">Indkøbsliste</div>
+      @if (list(); as l) {
+        <div class="hero-sub">Uge {{ l.weekNumber }}, {{ l.year }} · delt med dig · {{ checkedCount() }}/{{ totalCount() }} købt</div>
+      }
+    </div>
 
     @if (list(); as l) {
-      <div class="spread">
-        <div class="muted">Uge {{ l.weekNumber }}, {{ l.year }} (delt med dig)</div>
-        <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
-      </div>
 
       @for (g of l.groups; track g.categoryName) {
         <div class="card">
@@ -38,7 +44,10 @@ import { ShoppingList, ShoppingLine, unitLabel } from '../models';
     } @else {
       <div class="empty">Henter listen… (kan tage op til et minut første gang)</div>
     }
-  `
+  `,
+  styles: [`
+    :host .hero .eyebrow app-logo { line-height: 0; }
+  `]
 })
 export class SharedListPage implements OnInit {
   private api = inject(Api);

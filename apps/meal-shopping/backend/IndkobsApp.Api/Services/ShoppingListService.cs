@@ -31,9 +31,8 @@ public class ShoppingListService
         public int CategorySort { get; init; }
         public bool IsManual { get; init; }
         public MeasureFamily Family { get; init; }
-        public Unit CountUnit { get; init; } // kun relevant for Family == Count
+        public string CountUnit { get; init; } = Units.Default; // kun relevant for Family == Count (vist tekst)
         public decimal AccumulatedBase { get; set; }
-        public decimal OnHandBase { get; set; } // hvad husstanden har hjemme (køkkenlager)
         public bool IsChecked { get; set; }
         public HashSet<string> Sources { get; } = new();
     }
@@ -91,38 +90,6 @@ public class ShoppingListService
                 AddFreeText(acc, checks, m.FreeText ?? "(ukendt)", m.Quantity, m.Unit);
         }
 
-        // --- Afstemning mod køkkenlageret: fordel "haves hjemme" ud på linjerne, så
-        //     Quantity bliver det der reelt SKAL KØBES (behov minus lager). ---
-        var pantry = await _db.PantryItems
-            .Where(p => p.HouseholdId == week.HouseholdId)
-            .ToListAsync();
-
-        // Lager pr. (ingrediens, familie) i basisenhed — og pr. (ingrediens, count-enhed).
-        var onHandMassVol = new Dictionary<(int IngredientId, MeasureFamily Family), decimal>();
-        var onHandCount = new Dictionary<(int IngredientId, Unit Unit), decimal>();
-        foreach (var p in pantry)
-        {
-            var fam = UnitMath.FamilyOf(p.Unit);
-            if (fam == MeasureFamily.Count)
-            {
-                var key = (p.IngredientId, p.Unit);
-                onHandCount[key] = onHandCount.GetValueOrDefault(key) + p.Quantity;
-            }
-            else
-            {
-                var key = (p.IngredientId, fam);
-                onHandMassVol[key] = onHandMassVol.GetValueOrDefault(key) + UnitMath.ToBase(p.Quantity, p.Unit);
-            }
-        }
-
-        foreach (var a in acc.Values)
-        {
-            if (a.IngredientId is not int ingId) continue; // fritekst-varer kan ikke matches mod lager
-            a.OnHandBase = a.Family == MeasureFamily.Count
-                ? onHandCount.GetValueOrDefault((ingId, a.CountUnit))
-                : onHandMassVol.GetValueOrDefault((ingId, a.Family));
-        }
-
         // --- Byg DTO: konverter akkumulerede mængder til visningsenhed og gruppér pr. kategori ---
         var groups = acc.Values
             .GroupBy(a => (a.CategoryId, a.CategoryName, a.CategorySort))
@@ -143,30 +110,18 @@ public class ShoppingListService
 
     private static ShoppingLineDto ToLineDto(Accumulator a)
     {
-        // Skal-købes = behov minus det der er hjemme (aldrig negativt).
-        var toBuyBase = Math.Max(0, a.AccumulatedBase - a.OnHandBase);
-
         decimal qty;
-        Unit unit;
-        decimal? onHandQty = null;
-        Unit? onHandUnit = null;
+        string unit;
 
         if (a.Family == MeasureFamily.Count)
         {
-            qty = toBuyBase;
+            qty = a.AccumulatedBase;
             unit = a.CountUnit;
-            if (a.OnHandBase > 0) { onHandQty = a.OnHandBase; onHandUnit = a.CountUnit; }
         }
         else
         {
             // Vælg pæn enhed: fx 1500 g → 1,5 kg, 800 g → 800 g.
-            (qty, unit) = UnitMath.FromBase(toBuyBase, a.Family);
-            if (a.OnHandBase > 0)
-            {
-                var (ohQty, ohUnit) = UnitMath.FromBase(a.OnHandBase, a.Family);
-                onHandQty = Math.Round(ohQty, 3, MidpointRounding.AwayFromZero);
-                onHandUnit = ohUnit;
-            }
+            (qty, unit) = UnitMath.FromBase(a.AccumulatedBase, a.Family);
         }
 
         return new ShoppingLineDto(
@@ -177,19 +132,17 @@ public class ShoppingListService
             unit,
             a.IsChecked,
             a.IsManual,
-            a.Sources.OrderBy(s => s).ToList(),
-            onHandQty,
-            onHandUnit);
+            a.Sources.OrderBy(s => s).ToList());
     }
 
     private void Add(Dictionary<string, Accumulator> acc, IReadOnlyDictionary<string, bool> checks,
-        Ingredient ingredient, decimal quantity, Unit unit, string source, bool isManual = false)
+        Ingredient ingredient, decimal quantity, string unit, string source, bool isManual = false)
     {
         var family = UnitMath.FamilyOf(unit);
-        // Linjer slås kun sammen hvis: samme ingrediens OG samme familie
-        // (for count desuden samme enhed). g↔kg og ml↔l lander i samme bøtte.
+        // Linjer slås kun sammen hvis: samme ingrediens OG samme familie (for count desuden
+        // samme enhed, case-insensitivt). g↔kg og ml↔l lander i samme bøtte.
         var key = family == MeasureFamily.Count
-            ? $"ing:{ingredient.Id}:cnt:{unit}"
+            ? $"ing:{ingredient.Id}:cnt:{Units.NormalizeKey(unit)}"
             : $"ing:{ingredient.Id}:{family}";
 
         var a = GetOrCreate(acc, checks, key, () => new Accumulator
@@ -210,13 +163,13 @@ public class ShoppingListService
     }
 
     private void AddFreeText(Dictionary<string, Accumulator> acc, IReadOnlyDictionary<string, bool> checks,
-        string text, decimal quantity, Unit unit)
+        string text, decimal quantity, string unit)
     {
         var name = text.Trim();
         var normalized = name.ToLowerInvariant();
         var family = UnitMath.FamilyOf(unit);
         var key = family == MeasureFamily.Count
-            ? $"txt:{normalized}:cnt:{unit}"
+            ? $"txt:{normalized}:cnt:{Units.NormalizeKey(unit)}"
             : $"txt:{normalized}:{family}";
 
         var a = GetOrCreate(acc, checks, key, () => new Accumulator

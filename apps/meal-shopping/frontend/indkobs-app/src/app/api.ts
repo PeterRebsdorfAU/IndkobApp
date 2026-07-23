@@ -4,8 +4,9 @@ import { Observable } from 'rxjs';
 import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
-  CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult,
-  HouseholdTask, TasksSummary
+  CatalogRecipe, AdoptResult, ShareToken,
+  RecipeShareTarget, SharedRecipe,
+  HouseholdTask, TasksSummary, Store, Order, InviteResult
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -26,6 +27,10 @@ export class Api {
   updateCategory(id: number, c: { name: string; sortOrder: number }) { return this.http.put(`${API}/categories/${id}`, { id, ...c }); }
   deleteCategory(id: number) { return this.http.delete(`${API}/categories/${id}`); }
 
+  // ----- Enheder (fri tekst) -----
+  // Forslag til enheds-vælgeren: standard-sættet + de enheder husstanden allerede har brugt.
+  getUnits(): Observable<string[]> { return this.http.get<string[]>(`${API}/units`); }
+
   // ----- Ingredienser -----
   getIngredients(): Observable<Ingredient[]> { return this.http.get<Ingredient[]>(`${API}/ingredients`); }
   createIngredient(i: { name: string; categoryId: number | null }) { return this.http.post<Ingredient>(`${API}/ingredients`, i); }
@@ -38,6 +43,26 @@ export class Api {
   createRecipe(r: RecipeUpsert) { return this.http.post<Recipe>(`${API}/recipes`, r); }
   updateRecipe(id: number, r: RecipeUpsert) { return this.http.put<Recipe>(`${API}/recipes/${id}`, r); }
   deleteRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}`); }
+
+  // Opskrift-billede (valgfrit). Uploades som multipart; komprimeres yderligere server-side.
+  uploadRecipeImage(id: number, image: Blob) {
+    const form = new FormData();
+    form.append('file', image, 'billede.jpg');
+    return this.http.post<Recipe>(`${API}/recipes/${id}/image`, form);
+  }
+  deleteRecipeImage(id: number) { return this.http.delete(`${API}/recipes/${id}/image`); }
+
+  // AI-scanning af opskrift-billede (valgfri feature). enabled() styrer om knappen vises;
+  // scan() sender billedet og får et RecipeUpsert til gennemsyn (intet gemmes server-side).
+  scanRecipeEnabled(): Observable<{ enabled: boolean }> { return this.http.get<{ enabled: boolean }>(`${API}/recipes/scan/enabled`); }
+  scanRecipe(image: Blob): Observable<RecipeUpsert> {
+    const form = new FormData();
+    form.append('file', image, 'opskrift.jpg');
+    return this.http.post<RecipeUpsert>(`${API}/recipes/scan`, form);
+  }
+  // Fulde URL'er til billed-endpoints (hentes med Bearer-token via secure-image-komponenten).
+  recipeImageUrl(id: number) { return `${API}/recipes/${id}/image`; }
+  catalogImageUrl(id: number) { return `${API}/catalog/recipes/${id}/image`; }
 
   // ----- Varegrupper -----
   getItemGroups(): Observable<ItemGroup[]> { return this.http.get<ItemGroup[]>(`${API}/item-groups`); }
@@ -84,9 +109,6 @@ export class Api {
   setCheck(weekId: number, lineKey: string, isChecked: boolean) {
     return this.http.put(`${API}/weeks/${weekId}/shopping-list/check`, { lineKey, isChecked });
   }
-  stockChecked(weekId: number) {
-    return this.http.post<StockCheckedResult>(`${API}/weeks/${weekId}/shopping-list/stock-checked`, {});
-  }
 
   // ----- Inspiration / katalog -----
   getCatalog(): Observable<CatalogRecipe[]> { return this.http.get<CatalogRecipe[]>(`${API}/catalog/recipes`); }
@@ -96,15 +118,24 @@ export class Api {
   publishRecipe(id: number) { return this.http.post(`${API}/recipes/${id}/publish`, {}); }
   unpublishRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}/publish`); }
 
-  // ----- Køkkenlager -----
-  getPantry(): Observable<PantryItem[]> { return this.http.get<PantryItem[]>(`${API}/pantry`); }
-  addPantryItem(body: { ingredientId?: number | null; ingredientName?: string | null; quantity: number; unit: Unit }) {
-    return this.http.post<PantryItem>(`${API}/pantry`, body);
+  // ----- Selektiv deling af opskrifter (med én udvalgt modtager) -----
+  shareRecipe(id: number, email: string) {
+    return this.http.post<RecipeShareTarget>(`${API}/recipes/${id}/share`, { email });
   }
-  updatePantryItem(id: number, body: { quantity: number; unit: Unit }) {
-    return this.http.put(`${API}/pantry/${id}`, body);
+  unshareRecipe(id: number, targetHouseholdId: number) {
+    return this.http.delete(`${API}/recipes/${id}/share/${targetHouseholdId}`);
   }
-  deletePantryItem(id: number) { return this.http.delete(`${API}/pantry/${id}`); }
+  getRecipeShares(id: number): Observable<RecipeShareTarget[]> {
+    return this.http.get<RecipeShareTarget[]>(`${API}/recipes/${id}/shares`);
+  }
+  getSharedWithMe(): Observable<SharedRecipe[]> {
+    return this.http.get<SharedRecipe[]>(`${API}/recipes/shared-with-me`);
+  }
+  adoptSharedRecipe(recipeId: number, body: { weekId?: number | null; servings?: number | null; dayOfWeek?: number | null } = {}) {
+    return this.http.post<AdoptResult>(`${API}/recipes/shared-with-me/${recipeId}/adopt`, body);
+  }
+  // Billede for en opskrift delt TIL min husstand (Bearer sættes af interceptoren via secure-image).
+  sharedRecipeImageUrl(recipeId: number) { return `${API}/recipes/shared-with-me/${recipeId}/image`; }
 
   // ----- Deling af indkøbsliste -----
   createShare(weekId: number) { return this.http.post<ShareToken>(`${API}/weeks/${weekId}/share`, {}); }
@@ -127,6 +158,25 @@ export class Api {
   completeTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/complete`, {}); }
   uncompleteTask(id: number) { return this.http.post<HouseholdTask>(`${API}/tasks/${id}/uncomplete`, {}); }
   deleteTask(id: number) { return this.http.delete(`${API}/tasks/${id}`); }
+
+  // ----- Ordrer: forbruger-side -----
+  getStores(): Observable<Store[]> { return this.http.get<Store[]>(`${API}/orders/stores`); }
+  getMyOrders(): Observable<Order[]> { return this.http.get<Order[]>(`${API}/orders`); }
+  createOrderFromWeek(weekId: number, body: { storeName: string; note?: string | null }) {
+    return this.http.post<Order>(`${API}/orders/from-week/${weekId}`, body);
+  }
+  cancelOrder(id: number) { return this.http.delete(`${API}/orders/${id}`); }
+  // (Butiks-siden bor nu i den separate apps/supermarket-app.)
+
+  // ----- Brugerkonti: invitér til husstanden (T2) -----
+  // Returnerer et link som en eksisterende bruger kan dele, så andre kan oprette sig i samme husstand.
+  createInvite(): Observable<InviteResult> { return this.http.post<InviteResult>(`${API}/auth/invite`, {}); }
+
+  // ----- GDPR: data-eksport & -sletning -----
+  // Henter hele husstandens data som JSON-objekt (Bearer-token sættes af interceptor).
+  exportMyData(): Observable<unknown> { return this.http.get<unknown>(`${API}/privacy/export`); }
+  // Sletter egen husstand permanent — kræver gen-indtastet adgangskode.
+  deleteMyHousehold(password: string) { return this.http.post(`${API}/privacy/delete`, { password }); }
 }
 
 // ISO-ugenummer for en given dato (til uge-vælgeren).

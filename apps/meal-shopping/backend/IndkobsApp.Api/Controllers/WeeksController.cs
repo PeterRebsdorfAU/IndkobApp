@@ -16,16 +16,14 @@ public class WeeksController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IngredientService _ingredients;
     private readonly ShoppingListService _shoppingList;
-    private readonly PantryService _pantry;
     private readonly WeekCleanupService _cleanup;
 
     public WeeksController(AppDbContext db, IngredientService ingredients, ShoppingListService shoppingList,
-        PantryService pantry, WeekCleanupService cleanup)
+        WeekCleanupService cleanup)
     {
         _db = db;
         _ingredients = ingredients;
         _shoppingList = shoppingList;
-        _pantry = pantry;
         _cleanup = cleanup;
     }
 
@@ -112,28 +110,17 @@ public class WeeksController : ControllerBase
     }
 
     /// <summary>
-    /// Markér retten som LAVET: ingredienserne (skaleret efter portioner) trækkes
-    /// automatisk fra køkkenlageret. Kan kun gøres én gang pr. ret pr. uge.
+    /// Markér retten som LAVET (historik-markering). Kan kun gøres én gang pr. ret pr. uge.
     /// </summary>
     [HttpPost("{id:int}/recipes/{weekRecipeId:int}/cooked")]
     public async Task<ActionResult<WeekDetailDto>> MarkCooked(int id, int weekRecipeId)
     {
-        var hid = User.GetHouseholdId();
         if (!await OwnsWeek(id)) return NotFound();
 
         var wr = await _db.WeekRecipes
-            .Include(x => x.Recipe).ThenInclude(r => r.Ingredients)
             .FirstOrDefaultAsync(x => x.Id == weekRecipeId && x.WeekId == id);
         if (wr == null) return NotFound();
         if (wr.CookedUtc != null) return Conflict("Retten er allerede markeret som lavet.");
-
-        // Samme skaleringsfaktor som indkøbslisten bruger.
-        var effective = wr.Servings ?? wr.Recipe.Servings;
-        var baseServ = wr.Recipe.Servings <= 0 ? 1 : wr.Recipe.Servings;
-        var factor = (decimal)effective / baseServ;
-
-        foreach (var ri in wr.Recipe.Ingredients)
-            await _pantry.ConsumeAsync(hid, ri.IngredientId, ri.Quantity * factor, ri.Unit);
 
         wr.CookedUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -141,8 +128,7 @@ public class WeeksController : ControllerBase
     }
 
     /// <summary>
-    /// Fortryd "lavet"-markeringen. Bemærk: lageret føres IKKE tilbage automatisk
-    /// (vi kan ikke vide præcist hvad der blev trukket, hvis lageret var lavt).
+    /// Fortryd "lavet"-markeringen.
     /// </summary>
     [HttpDelete("{id:int}/recipes/{weekRecipeId:int}/cooked")]
     public async Task<ActionResult<WeekDetailDto>> UnmarkCooked(int id, int weekRecipeId)
@@ -219,7 +205,7 @@ public class WeeksController : ControllerBase
             IngredientId = ingredientId,
             FreeText = freeText,
             Quantity = dto.Quantity,
-            Unit = dto.Unit
+            Unit = Units.Clean(dto.Unit)
         });
         await _db.SaveChangesAsync();
         return (await BuildDetail(id))!;
@@ -263,32 +249,6 @@ public class WeeksController : ControllerBase
         }
         await _db.SaveChangesAsync();
         return NoContent();
-    }
-
-    /// <summary>
-    /// Læg alle AFKRYDSEDE varer på køkkenlageret (det man har købt og båret hjem).
-    /// Naturligt idempotent: efter første tryk dækker lageret varerne, så deres
-    /// skal-købes-mængde bliver 0, og endnu et tryk tilføjer intet.
-    /// </summary>
-    [HttpPost("{id:int}/shopping-list/stock-checked")]
-    public async Task<ActionResult<StockCheckedResultDto>> StockChecked(int id)
-    {
-        var hid = User.GetHouseholdId();
-        if (!await OwnsWeek(id)) return NotFound();
-
-        var list = await _shoppingList.BuildAsync(id);
-        if (list == null) return NotFound();
-
-        var stocked = 0;
-        foreach (var line in list.Groups.SelectMany(g => g.Lines))
-        {
-            // Kun afkrydsede, ingrediens-koblede linjer med en reel købsmængde.
-            if (!line.IsChecked || line.IngredientId is not int ingId || line.Quantity <= 0) continue;
-            await _pantry.AddOrMergeAsync(hid, ingId, line.Quantity, line.Unit);
-            stocked++;
-        }
-        await _db.SaveChangesAsync();
-        return new StockCheckedResultDto(stocked);
     }
 
     // ---------- Deling af indkøbslisten (link uden login) ----------

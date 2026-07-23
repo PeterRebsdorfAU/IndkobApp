@@ -4,10 +4,17 @@
 *.user
 .vs/
 
-# --- Node / Angular frontend ---
+# --- Node / Angular frontend (alle apps i monorepoet) ---
 node_modules/
-frontend/indkobs-app/dist/
-frontend/indkobs-app/.angular/
+**/dist/
+**/.angular/
+
+# --- Hemmeligheder / lokale overrides (må ALDRIG committes) ---
+.env
+.env.*
+appsettings.*.local.json
+appsettings.Local.json
+*.secrets.json
 
 # --- Editor / OS ---
 .idea/

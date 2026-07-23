@@ -12,20 +12,23 @@ listen sorteres efter butikskategori, og hver linje kan krydses af. Flere hussta
 Derudover (bygget som afgrænsede moduler i samme app — se §10):
 - **Inspiration:** et fælles opskrifts-katalog man kan bladre i; "Tilføj" kopierer opskriften til
   husstandens egne og lægger den evt. direkte på en uge.
-- **Køkkenlager (pantry):** husstandens "hvad har vi hjemme"; indkøbslisten viser kun det der
-  mangler (behov minus lager) med "har X hjemme"-badges.
 - **Deling:** ugens indkøbsliste kan deles via et token-link (`/del/<token>`) uden login —
   modtageren kan se og krydse af, synkront med husstanden.
 - **Hjem (husstandens opgaver):** engangs-to-dos + gentagne pligter/vedligehold i én motor
   (`HouseholdTask`): interval ruller forfaldsdato frem ved "gjort", valgfri tur-rotation
   (komma-separerede navne), badge i navigationen med forfaldne + åbne.
+- **Ordrer (butiks-flow):** husstanden sender ugens indkøbsliste som en `Order` til en butik og
+  ser status under "Mine ordrer" (`Modtaget → Pakkes → Klar → Afhentet`). **Butiks-siden bor i en
+  SEPARAT app: `apps/supermarket`** (eget website, egen URL), der taler med denne backend via
+  `/api/store/*` med butiks-nøgle (ikke husstands-login). Denne forbruger-app har altså KUN
+  afsender-/status-delen. Se `../../docs/COMMERCIAL.md`.
 
 ## 2. Teknologi & topologi
 - **Frontend:** Angular 20 (standalone components, signals), PWA. Hostes som **Render Static Site**
   → `indkobapp-web.onrender.com`. Bygges fra branch `main`, root `apps/meal-shopping/frontend/indkobs-app`,
   build `npm ci && npm run build`, publish `dist/indkobs-app/browser`, SPA-rewrite `/* → /index.html`.
 - **Backend:** ASP.NET Core 10 Web API (C#), Docker. Hostes som **Render Web Service**
-  → `indkobapp.onrender.com`. Bygges fra branch `cloud-deploy`, Docker-context `apps/meal-shopping`, `apps/meal-shopping/Dockerfile`.
+  → `indkobapp.onrender.com`. Bygges fra branch `develop`, Docker-context `apps/meal-shopping`, `apps/meal-shopping/Dockerfile`.
 - **Database:** PostgreSQL på **Neon** (branch `production`), EF Core 10 (Npgsql), code-first migrations.
 - **Auth:** JWT (Bearer), login pr. husstand.
 
@@ -43,7 +46,7 @@ Denne app ligger under `apps/meal-shopping/` i repoet `PeterRebsdorfAU/IndkobApp
 ```
 apps/meal-shopping/
 ├─ backend/IndkobsApp.Api/     # .NET API
-│  ├─ Models/                  # entiteter + Unit-enum + UnitMath (enhedsmatematik)
+│  ├─ Models/                  # entiteter + Units (fri-tekst enheder) + UnitMath (enhedsmatematik)
 │  ├─ Data/                    # AppDbContext, DbSeeder, Migrations/
 │  ├─ Dtos/ Services/ Controllers/
 │  └─ Program.cs               # DI, JWT, CORS, auto-migrate + seed
@@ -54,8 +57,13 @@ apps/meal-shopping/
 ```
 Fælles økosystem-ting ligger i repo-roden: `docs/ECOSYSTEM.md`, `shared/`, `render.yaml`.
 
-**Branches:** `main` (frontend deployer herfra) og `cloud-deploy` (backend deployer herfra; primær arbejdsbranch).
-Hold dem i sync ved at merge `cloud-deploy → main`.
+**Branches (bevidst model):**
+- `main` = **produktion, brugervendt.** Forbruger-appen (`indkobapp-web`) deployer herfra. Har IKKE butik/ordrer.
+- `develop` = **primær arbejdsbranch + integration.** Backend (`indkobapp-api`) og butiks-demo (`indkobapp-butik`)
+  deployer herfra. Ligger bevidst foran `main` med endnu-ikke-udgivet arbejde (butik/ordrer).
+
+Backend er additiv ift. `main` (kun ekstra endpoints), så forbruger-appen fra `main` fungerer mod `develop`-backenden.
+Merg først `develop → main` når du vil **udgive** butik/ordrer til brugerne.
 
 ## 4. Datamodel
 
@@ -88,10 +96,15 @@ erDiagram
 - **`WeekRecipe.Servings`** (nullable) overstyrer rettens basis-portioner → skalering. `DayOfWeek` (nullable) = valgfri dag.
 - **`WeekManualItem`** = løs vare (enten koblet til en `Ingredient` eller fritekst).
 - **`ShoppingListCheck`** husker afkrydsning pr. aggregeret linje via en stabil `LineKey` (se §6).
-- **`Unit`** er en enum gemt som tekst i DB (Stk, G, Kg, Ml, L, Spsk, Tsk, Daase, Pakke, Knivspids, Bundt, Fed).
+- **`Unit`** er **fri tekst** (`string`): brugeren kan bruge en hvilken som helst enhed (fx "glas",
+  "kviste"). De omregnelige basisenheder (masse g↔kg, volumen ml↔l) genkendes af `UnitMath` og lægges
+  automatisk sammen; enhver anden enhed er "count" og lægges kun sammen pr. distinkt enhed
+  (case-insensitivt). `Models/Unit.cs` (`Units`) samler de kendte forslag (stk, g, kg, ml, l, spsk, tsk,
+  dåse, pakke, knivspids, bundt, fed). Enheds-vælgeren i frontend er en combobox (`<input list=…>`), og
+  `GET /api/units` foreslår standard-sættet + husstandens tidligere brugte enheder. (Migration
+  `FreeTextUnits` konverterede de gamle enum-navne til fri-tekst skrivemåder — data-bevarende.)
 - **`CatalogRecipe`/`CatalogRecipeIngredient`** = fælles inspirations-katalog (ikke husstands-scoped).
   Ingredienser gemmes som **navne** — mapping til master-`Ingredient` sker først ved adoption.
-- **`PantryItem`** = husstandens køkkenlager (HouseholdId, IngredientId, Quantity, Unit).
 - **`WeekShareToken`** = delings-token pr. uge (unikt; giver anonym læse/afkrydsningsadgang).
 
 ## 5. Auth-model
@@ -120,6 +133,7 @@ Findes i `Services/ShoppingListService.cs`; enheds-matematik i `Models/Unit.cs` 
 ## 7. API-overflade (alle kræver JWT undtagen login/admin)
 ```
 POST   /api/auth/login            GET /api/auth/me
+POST   /api/auth/refresh          # byt refresh-token til nyt access-token (se SECURITY.md §2)
 POST/GET/DELETE /api/admin/households[/{id}]      (X-Admin-Key)
 GET/POST/PUT/DELETE /api/recipes[/{id}]
 GET/POST/PUT/DELETE /api/item-groups[/{id}]
@@ -129,43 +143,56 @@ GET/POST/DELETE /api/weeks[/{id}]
 POST/PUT/DELETE /api/weeks/{id}/recipes[/{wrId}]
 POST/DELETE     /api/weeks/{id}/item-groups[/{wgId}]
 POST/DELETE     /api/weeks/{id}/manual-items[/{miId}]
-GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret, MINUS lager
+GET  /api/weeks/{id}/shopping-list        # aggregeret, kategori-sorteret
 PUT  /api/weeks/{id}/shopping-list/check  # sæt/fjern afkrydsning
 GET  /api/catalog/recipes                 # inspirations-katalog (kurateret + community; SharedBy = delende husstand)
 POST /api/catalog/recipes/{id}/adopt      # kopiér til egne + læg evt. på uge {weekId?,servings?,dayOfWeek?}
 POST /api/recipes/{id}/publish            # publicér egen opskrift til Inspiration (snapshot; gen-publicér = opdatér)
 DELETE /api/recipes/{id}/publish          # fjern egen opskrift fra Inspiration igen
-GET/POST/PUT/DELETE /api/pantry[/{id}]    # køkkenlager (husstands-scoped; POST merger forenelige enheder)
-POST /api/weeks/{id}/recipes/{wrId}/cooked   # "Lavet": træk ingredienser (skaleret) fra lageret (409 hvis allerede)
-DELETE /api/weeks/{id}/recipes/{wrId}/cooked # fortryd markering (lageret føres IKKE tilbage)
-POST /api/weeks/{id}/shopping-list/stock-checked # læg afkrydsede varer på lageret (idempotent via afstemning)
+POST /api/weeks/{id}/recipes/{wrId}/cooked   # "Lavet": markér ret som lavet (CookedUtc; 409 hvis allerede)
+DELETE /api/weeks/{id}/recipes/{wrId}/cooked # fortryd "lavet"-markering
 GET/POST/PUT/DELETE /api/tasks[/{id}]     # hjemmets opgaver (husstands-scoped)
 POST /api/tasks/{id}/complete|uncomplete  # gjort (ruller dato + rotation) / fortryd engangs
 GET  /api/tasks/summary                   # { overdue, openTodos } til nav-badge
 POST/DELETE /api/weeks/{id}/share         # opret/tilbagekald delings-token
 GET  /api/share/{token}                   # ANONYM: hent delt liste
 PUT  /api/share/{token}/check             # ANONYM: kryds af på delt liste
+GET  /api/orders/stores                   # butikker man kan sende til (fra config)
+GET  /api/orders                          # husstandens ordrer + status
+POST /api/orders/from-week/{weekId}       # send indkøbslisten som ordre {storeName,note?}
+DELETE /api/orders/{id}                    # annullér/fjern ordre
+GET  /api/store/stores|orders?store=      # BUTIK (X-Store-Key): butiksliste / ordrekø
+PUT  /api/store/orders/{id}/lines/{lineId}   # BUTIK: pak linje / ikke på lager
+POST /api/store/orders/{id}/ready|collected  # BUTIK: marker klar / afhentet
+GET  /health                              # ANONYM: readiness (tjekker DB) til uptime-overvågning
 ```
-Indkøbslistens `ShoppingLineDto.Quantity` er **skal-købes** (behov − lager, aldrig negativ);
-`OnHandQuantity/OnHandUnit` viser lagerbeholdningen. Fritekst-varer matches ikke mod lager.
+Indkøbslistens `ShoppingLineDto.Quantity` er det aggregerede, fulde behov for ugen.
 
 ## 8. Konfiguration & hemmeligheder
 Læses fra konfiguration; i produktion sat som **env-vars på Render** (overstyrer `appsettings.json`):
 - `ConnectionStrings__Default` — Neon (.NET/Npgsql-format). **Hemmelig.**
 - `Jwt__Key` — JWT-signeringsnøgle (≥32 tegn). **Hemmelig.**
 - `Admin__Key` — nøgle til admin-endpoints. **Hemmelig.**
+- `Stores__AccessKey` — demo-adgangskode til butiks-siden (`/butik`). `Stores__Names__0..n` = butiksliste.
+- `Sentry__Dsn` — **valgfri.** Aktiverer fejllogning/overvågning (Sentry) i backend. Mangler den, er
+  overvågning en no-op (appen kører uændret). Frontend har sin egen DSN i `environment*.ts`.
+  Se [`../../docs/OBSERVABILITY.md`](../../docs/OBSERVABILITY.md).
 - `appsettings.json` indeholder KUN dev-standarder (offentlige) — de SKAL overstyres i prod.
   Repoet er offentligt, så prod-nøglerne må aldrig committes.
+- **Sikkerhedshærdning (T4):** rate limiting, stram CORS, security headers, kort access-token +
+  refresh-mekanisme og secrets-hygiejne/rotation er dokumenteret i [`SECURITY.md`](SECURITY.md).
+  Backenden nægter at starte i prod, hvis en nøgle stadig har dev-standardværdien.
 
 Ved opstart kører backenden `Database.Migrate()` + `DbSeeder` (seeder kun hvis der ingen husstand findes)
 + **uge-oprydning** (`WeekCleanupService`): uger ældre end `Cleanup:WeekRetentionWeeks` (default 5)
 slettes automatisk på tværs af husstande — kaskaderer til ugens indhold/checks/delings-tokens, men rører
-ikke opskrifter/lager. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt værdien til 0 for at slå fra.
+ikke opskrifter. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt værdien til 0 for at slå fra.
 
 ## 9. Kendte forbehold / gotchas
 - **Gratis Render:** backend "sover" efter inaktivitet → ~30-60 sek cold start på første kald.
 - **PWA-cache:** ny frontend-version kræver evt. at appen lukkes/genindlæses (service worker opdaterer sig).
-- **Frontend deployer fra `main`, backend fra `cloud-deploy`** — husk at merge, ellers divergerer de.
+- **Frontend fra `main`, backend/butik fra `develop`** — `develop` er bevidst foran med uudgivet butik/ordre-arbejde.
+  Butik er kun "live" for brugerne når `develop → main` merges. Divergensen er tilsigtet, ikke en fejl.
 - **Skema-ændringer skal bevare data:** brug data-bevarende migration (jf. `tools/DataMigrator`),
   ALDRIG drop/reset af produktions-databasen. (Neon har point-in-time restore som sikkerhedsnet.)
 - **`Ingredient`/`Category` blev husstands-scoped i jul 2026** (migration `ScopeItemsPerHousehold`):
@@ -175,12 +202,12 @@ ikke opskrifter/lager. Kører også throttlet (6 t) ved `GET /api/weeks`. Sæt v
 
 ## 10. Denne apps ansvarsgrænse (ift. økosystemet)
 - **Ejer:** retter, ugeplan, indkøbsliste-generering + aggregering, enhedslogik, (pt.) husstands-login.
-- **Indeholder desuden (pragmatisk beslutning, jul 2026):** **Inspiration** (§4.8 i ECOSYSTEM),
-  **Køkkenlager** og **liste-deling** er implementeret som *afgrænsede moduler i denne app*
+- **Indeholder desuden (pragmatisk beslutning, jul 2026):** **Inspiration** (§4.8 i ECOSYSTEM)
+  og **liste-deling** er implementeret som *afgrænsede moduler i denne app*
   (egne tabeller/controllers/sider) i stedet for separate services — det gav værdien uden ekstra
-  Render-services/cold starts. **Udskilningssti:** Pantry-modulet (PantryItem + PantryController +
-  pantry-siden) og Share-modulet er bevidst selvstændige og kan løftes ud i egne services senere,
-  jf. ECOSYSTEM §4.2/§4.4 — kontrakterne (ingrediens-id, mængde+enhed) er allerede de fælles.
+  Render-services/cold starts. **Udskilningssti:** Share-modulet er bevidst selvstændigt og kan
+  løftes ud i egen service senere, jf. ECOSYSTEM §4.4 — kontrakterne (ingrediens-id, mængde+enhed)
+  er allerede de fælles. (**Køkkenlager/pantry blev fjernet igen jul 2026 — for indviklet.**)
 - **Ejer IKKE:** priser/butiksvalg (→ Pris-systemet, fremtidigt).
 - **Fremtidige integrationer:** migrér `Ingredient` mod et fælles Vare-katalog; udstil skal-købes-listen
   som kontrakt. Se [`../../docs/ECOSYSTEM.md`](../../docs/ECOSYSTEM.md).

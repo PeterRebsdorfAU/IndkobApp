@@ -1,0 +1,61 @@
+name: CI
+
+# Bygger og tester Madplan & Indkøb ved pull requests mod arbejds- og produktionsgrenene.
+# Backend: byg + kør xUnit-tests. Frontend: produktions-build (fanger kompilerings-/template-fejl).
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch: {}
+
+# Kør kun seneste commit pr. gren/PR — annullér ældre kørsler.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend – build & test (.NET)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/meal-shopping/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Opsæt .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Gendan pakker
+        run: dotnet restore IndkobsApp.slnx
+
+      - name: Byg (Release)
+        run: dotnet build IndkobsApp.slnx --configuration Release --no-restore
+
+      - name: Kør tests
+        run: dotnet test IndkobsApp.slnx --configuration Release --no-build --verbosity normal
+
+  frontend:
+    name: Frontend – build (Angular)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/meal-shopping/frontend/indkobs-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Opsæt Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/meal-shopping/frontend/indkobs-app/package-lock.json
+
+      - name: Installér afhængigheder
+        run: npm ci
+
+      - name: Byg (produktion)
+        run: npm run build

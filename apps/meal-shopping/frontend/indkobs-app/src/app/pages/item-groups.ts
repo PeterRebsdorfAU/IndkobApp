@@ -3,13 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { Api } from '../api';
 import { ItemGroup, ItemGroupUpsert, Ingredient, IngredientLineInput, unitLabel } from '../models';
 import { IngredientLinesEditor } from '../shared/ingredient-lines';
+import { EmptyState } from '../shared/empty-state';
 
 @Component({
   selector: 'page-item-groups',
-  imports: [FormsModule, IngredientLinesEditor],
+  imports: [FormsModule, IngredientLinesEditor, EmptyState],
   template: `
-    <h1>Varegrupper</h1>
-    <p class="muted">Faste sæt varer der ikke er retter (fx Frokost, Toilet, Rengøring).</p>
+    <div class="hero">
+      <span class="eyebrow">Varegrupper</span>
+      <div class="hero-title">Faste vare-sæt</div>
+      <div class="hero-sub">Sæt af varer der ikke er retter (fx Frokost, Toilet, Rengøring).</div>
+    </div>
 
     @if (!editing()) {
       <button class="primary" (click)="startNew()">+ Ny varegruppe</button>
@@ -33,7 +37,10 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
           </div>
         </div>
       } @empty {
-        <div class="empty">Ingen varegrupper endnu.</div>
+        <app-empty-state icon="📦" title="Ingen varegrupper endnu"
+          text="Lav faste sæt af varer I køber igen og igen — fx Morgenmad eller Rengøring — og læg dem på ugen med ét tryk.">
+          <button class="primary" (click)="startNew()">+ Ny varegruppe</button>
+        </app-empty-state>
       }
     }
 
@@ -45,7 +52,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
           <input [(ngModel)]="form.name" placeholder="Fx Frokost" />
         </div>
 
-        <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" />
+        <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" [unitSuggestions]="units()" />
 
         @if (error()) { <div class="error">{{ error() }}</div> }
         <div class="row" style="margin-top:.8rem">
@@ -60,16 +67,18 @@ export class ItemGroupsPage implements OnInit {
   private api = inject(Api);
   groups = signal<ItemGroup[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  units = signal<string[]>([]);
   editing = signal<(ItemGroupUpsert & { id: number | null }) | null>(null);
   error = signal('');
   saving = signal(false);
 
   label = unitLabel;
 
-  ngOnInit() { this.load(); this.loadIngredients(); }
+  ngOnInit() { this.load(); this.loadIngredients(); this.loadUnits(); }
 
   load() { this.api.getItemGroups().subscribe(g => this.groups.set(g)); }
   loadIngredients() { this.api.getIngredients().subscribe(i => this.ingredients.set(i)); }
+  loadUnits() { this.api.getUnits().subscribe(u => this.units.set(u)); }
 
   startNew() { this.error.set(''); this.editing.set({ id: null, name: '', ingredients: [] }); }
 

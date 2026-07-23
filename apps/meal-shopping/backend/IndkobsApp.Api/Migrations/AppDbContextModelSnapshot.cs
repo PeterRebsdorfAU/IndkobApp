@@ -30,6 +30,16 @@ namespace IndkobsApp.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<byte[]>("Image")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Method")
+                        .HasColumnType("text");
+
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -84,8 +94,8 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<string>("Unit")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -276,8 +286,8 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<string>("Unit")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -288,7 +298,7 @@ namespace IndkobsApp.Api.Migrations
                     b.ToTable("ItemGroupIngredients");
                 });
 
-            modelBuilder.Entity("IndkobsApp.Api.Models.PantryItem", b =>
+            modelBuilder.Entity("IndkobsApp.Api.Models.Order", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,10 +306,67 @@ namespace IndkobsApp.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("HouseholdId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("IngredientId")
+                    b.Property<string>("HouseholdName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReadyUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StoreName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("StoreName");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("IndkobsApp.Api.Models.OrderLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CategoryName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsPacked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("NotAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OrderId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Quantity")
@@ -308,16 +375,14 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<string>("Unit")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HouseholdId");
+                    b.HasIndex("OrderId");
 
-                    b.HasIndex("IngredientId");
-
-                    b.ToTable("PantryItems");
+                    b.ToTable("OrderLines");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Recipe", b =>
@@ -330,6 +395,16 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<int>("HouseholdId")
                         .HasColumnType("integer");
+
+                    b.Property<byte[]>("Image")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Method")
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -370,8 +445,8 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<string>("Unit")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -380,6 +455,33 @@ namespace IndkobsApp.Api.Migrations
                     b.HasIndex("RecipeId");
 
                     b.ToTable("RecipeIngredients");
+                });
+
+            modelBuilder.Entity("IndkobsApp.Api.Models.RecipeShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetHouseholdId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetHouseholdId");
+
+                    b.HasIndex("RecipeId", "TargetHouseholdId")
+                        .IsUnique();
+
+                    b.ToTable("RecipeShares");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.ShoppingListCheck", b =>
@@ -407,6 +509,47 @@ namespace IndkobsApp.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("ShoppingListChecks");
+                });
+
+            modelBuilder.Entity("IndkobsApp.Api.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Week", b =>
@@ -478,8 +621,8 @@ namespace IndkobsApp.Api.Migrations
 
                     b.Property<string>("Unit")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("WeekId")
                         .HasColumnType("integer");
@@ -640,21 +783,24 @@ namespace IndkobsApp.Api.Migrations
                     b.Navigation("ItemGroup");
                 });
 
-            modelBuilder.Entity("IndkobsApp.Api.Models.PantryItem", b =>
+            modelBuilder.Entity("IndkobsApp.Api.Models.Order", b =>
                 {
                     b.HasOne("IndkobsApp.Api.Models.Household", null)
                         .WithMany()
                         .HasForeignKey("HouseholdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
 
-                    b.HasOne("IndkobsApp.Api.Models.Ingredient", "Ingredient")
-                        .WithMany()
-                        .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Restrict)
+            modelBuilder.Entity("IndkobsApp.Api.Models.OrderLine", b =>
+                {
+                    b.HasOne("IndkobsApp.Api.Models.Order", "Order")
+                        .WithMany("Lines")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Ingredient");
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Recipe", b =>
@@ -685,6 +831,23 @@ namespace IndkobsApp.Api.Migrations
                     b.Navigation("Recipe");
                 });
 
+            modelBuilder.Entity("IndkobsApp.Api.Models.RecipeShare", b =>
+                {
+                    b.HasOne("IndkobsApp.Api.Models.Recipe", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IndkobsApp.Api.Models.Household", null)
+                        .WithMany()
+                        .HasForeignKey("TargetHouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
             modelBuilder.Entity("IndkobsApp.Api.Models.ShoppingListCheck", b =>
                 {
                     b.HasOne("IndkobsApp.Api.Models.Week", "Week")
@@ -694,6 +857,17 @@ namespace IndkobsApp.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Week");
+                });
+
+            modelBuilder.Entity("IndkobsApp.Api.Models.User", b =>
+                {
+                    b.HasOne("IndkobsApp.Api.Models.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Week", b =>
@@ -785,6 +959,11 @@ namespace IndkobsApp.Api.Migrations
             modelBuilder.Entity("IndkobsApp.Api.Models.ItemGroup", b =>
                 {
                     b.Navigation("Ingredients");
+                });
+
+            modelBuilder.Entity("IndkobsApp.Api.Models.Order", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("IndkobsApp.Api.Models.Recipe", b =>

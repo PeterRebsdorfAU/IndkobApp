@@ -7,6 +7,13 @@
       "runtimeArgs": ["serve", "--port", "4200"],
       "port": 4200,
       "cwd": "apps/meal-shopping/frontend/indkobs-app"
+    },
+    {
+      "name": "supermarket",
+      "runtimeExecutable": "ng",
+      "runtimeArgs": ["serve", "--port", "4300"],
+      "port": 4300,
+      "cwd": "apps/supermarket"
     }
   ]
 }

@@ -17,6 +17,36 @@ public class Household
 }
 
 /// <summary>
+/// En individuel bruger der tilhører en husstand (T2 "individuelle brugerkonti").
+/// Flere brugere kan dele samme husstand (fx par/familie): de ser samme data, men
+/// logger ind hver for sig med egen email + adgangskode. Ved migrering oprettes én
+/// bruger pr. eksisterende husstand ud fra husstandens hidtidige login, så intet
+/// eksisterende login går i stykker (se migration <c>AddUsers</c>).
+/// </summary>
+public class User
+{
+    public int Id { get; set; }
+
+    /// <summary>Husstanden brugeren tilhører (data er husstands-scopet, ikke bruger-scopet).</summary>
+    public int HouseholdId { get; set; }
+    public Household Household { get; set; } = null!;
+
+    /// <summary>Login-email (unik på tværs af alle brugere; gemmes normaliseret lowercase).</summary>
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary>Vist navn (fx fornavn). Bruges til personalisering i UI.</summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Sat når brugeren har bekræftet sin email via bekræftelseslinket.</summary>
+    public bool EmailConfirmed { get; set; }
+
+    public static string NormalizeEmail(string email) => Household.NormalizeEmail(email);
+}
+
+/// <summary>
 /// Butikskategori brugt til at gruppere/sortere indkøbslisten.
 /// PRIVAT pr. husstand — hver husstand har sin egen butiksrækkefølge.
 /// </summary>
@@ -57,6 +87,18 @@ public class Recipe
     public string? Note { get; set; }
     public int Servings { get; set; } = 4; // basis-portioner
 
+    /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
+    public string? Method { get; set; }
+
+    /// <summary>
+    /// Valgfrit billede, gemt KOMPRIMERET (server-side nedskaleret ~1024px JPEG, mål &lt; ~300 KB)
+    /// som <c>bytea</c>. Null = intet billede. Serveres via GET /api/recipes/{id}/image.
+    /// </summary>
+    public byte[]? Image { get; set; }
+
+    /// <summary>MIME-type for <see cref="Image"/> (fx "image/jpeg"). Null når intet billede.</summary>
+    public string? ImageContentType { get; set; }
+
     public List<RecipeIngredient> Ingredients { get; set; } = new();
 }
 
@@ -70,7 +112,7 @@ public class RecipeIngredient
     public Ingredient Ingredient { get; set; } = null!;
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>Varegruppe/skabelon der ikke er en ret (fx Frokost, Toilet, Rengøring).</summary>
@@ -93,7 +135,7 @@ public class ItemGroupIngredient
     public Ingredient Ingredient { get; set; } = null!;
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>En planlagt uge (år + ugenummer, unikt).</summary>
@@ -127,8 +169,8 @@ public class WeekRecipe
     public int? DayOfWeek { get; set; }
 
     /// <summary>
-    /// Sat når retten er markeret "lavet" — ingredienserne blev da trukket fra
-    /// køkkenlageret. Null = ikke lavet endnu.
+    /// Sat når retten er markeret "lavet" — en simpel historik-markering af, at
+    /// husstanden har lavet retten i ugen. Null = ikke lavet endnu.
     /// </summary>
     public DateTime? CookedUtc { get; set; }
 }
@@ -158,7 +200,7 @@ public class WeekManualItem
     public string? FreeText { get; set; }
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>
@@ -190,6 +232,17 @@ public class CatalogRecipe
     /// <summary>Komma-separerede tags til filtrering (fx "hurtig,vegetar").</summary>
     public string? Tags { get; set; }
 
+    /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
+    public string? Method { get; set; }
+
+    /// <summary>
+    /// Valgfrit billede (samme komprimerede format som <see cref="Recipe.Image"/>). Kopieres
+    /// med fra kilde-opskriften ved publish, og videre til den nye opskrift ved adoption.
+    /// Serveres via GET /api/catalog/recipes/{id}/image.
+    /// </summary>
+    public byte[]? Image { get; set; }
+    public string? ImageContentType { get; set; }
+
     /// <summary>
     /// Sat hvis opskriften er PUBLICERET af en husstand (community-deling) — null for
     /// kuraterede opskrifter. Publicering er et snapshot: kilden kan gen-publicere for
@@ -209,23 +262,7 @@ public class CatalogRecipeIngredient
 
     public string Name { get; set; } = string.Empty; // ingrediens-navn (mappes ved adoption)
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
-}
-
-/// <summary>
-/// En vare husstanden har hjemme (køkkenlager). Bruges til at trække "haves"
-/// fra indkøbslisten, så man kun køber det man mangler.
-/// </summary>
-public class PantryItem
-{
-    public int Id { get; set; }
-    public int HouseholdId { get; set; }
-
-    public int IngredientId { get; set; }
-    public Ingredient Ingredient { get; set; } = null!;
-
-    public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>
@@ -261,6 +298,27 @@ public class HouseholdTask
 }
 
 /// <summary>
+/// Selektiv deling af én opskrift med én udvalgt modtager-husstand (v1).
+/// Adskilt fra <see cref="CatalogRecipe"/> (som er "publicér til ALLE"): en <c>RecipeShare</c>
+/// giver kun den valgte modtager-husstand adgang til at se og adoptere opskriften.
+/// Kun ejer-husstanden (opskriftens <see cref="Recipe.HouseholdId"/>) kan oprette/fjerne delingen.
+/// Unikt pr. (RecipeId, TargetHouseholdId), så gentagen deling er idempotent.
+/// </summary>
+public class RecipeShare
+{
+    public int Id { get; set; }
+
+    /// <summary>Den delte opskrift. Slettes opskriften, fjernes delingen (cascade).</summary>
+    public int RecipeId { get; set; }
+    public Recipe Recipe { get; set; } = null!;
+
+    /// <summary>Modtager-husstanden delingen giver adgang til (identificeret via login-email ved deling).</summary>
+    public int TargetHouseholdId { get; set; }
+
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
 /// Delings-token for en uges indkøbsliste: giver læse-/afkrydsningsadgang
 /// via link UDEN login (fx til den der handler).
 /// </summary>
@@ -272,4 +330,40 @@ public class WeekShareToken
 
     public string Token { get; set; } = string.Empty;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>Status-flow for en ordre sendt til en butik.</summary>
+public enum OrderStatus { Modtaget, Pakkes, Klar, Afhentet, Annulleret }
+
+/// <summary>
+/// En indkøbsordre en husstand sender til en butik (demo af butiks-flowet):
+/// butikken pakker linjerne og markerer ordren klar; husstanden ser status.
+/// Linjerne er et SNAPSHOT af indkøbslisten på afsendelsestidspunktet.
+/// </summary>
+public class Order
+{
+    public int Id { get; set; }
+    public int HouseholdId { get; set; }
+    public string HouseholdName { get; set; } = string.Empty; // vises for butikken
+    public string StoreName { get; set; } = string.Empty;     // valgt butik
+    public OrderStatus Status { get; set; } = OrderStatus.Modtaget;
+    public string? Note { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ReadyUtc { get; set; }
+
+    public List<OrderLine> Lines { get; set; } = new();
+}
+
+public class OrderLine
+{
+    public int Id { get; set; }
+    public int OrderId { get; set; }
+    public Order Order { get; set; } = null!;
+
+    public string Name { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string Unit { get; set; } = Units.Default;
+    public string? CategoryName { get; set; } // så butikken kan pakke i rækkefølge
+    public bool IsPacked { get; set; }
+    public bool NotAvailable { get; set; }
 }

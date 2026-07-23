@@ -3,13 +3,30 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api, isoWeek } from '../api';
 import { WeekState } from '../shared/week-state';
-import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, unitLabel } from '../models';
+import { EmptyState } from '../shared/empty-state';
+import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, BASE_UNITS, mergeUnitSuggestions, DAYS, unitLabel } from '../models';
 
 @Component({
   selector: 'page-week-plan',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, EmptyState],
   template: `
-    <h1>Ugeplan</h1>
+    @if (detail(); as d) {
+      <div class="hero">
+        <span class="eyebrow">Ugeplan</span>
+        <div class="hero-title">Uge {{ d.weekNumber }}</div>
+        <div class="hero-sub">{{ d.year }} · {{ d.recipes.length }} retter · {{ d.itemGroups.length }} varegrupper</div>
+        <div class="hero-actions">
+          <a routerLink="/indkob"><button class="accent small">Se indkøbsliste →</button></a>
+          <button class="ghost small" style="color:#fff" (click)="deleteWeek(d.id)">Slet uge</button>
+        </div>
+      </div>
+    } @else {
+      <div class="hero">
+        <span class="eyebrow">Ugeplan</span>
+        <div class="hero-title">Planlæg din uge</div>
+        <div class="hero-sub">Vælg ugens retter og få én samlet indkøbsliste.</div>
+      </div>
+    }
 
     <!-- Uge-vælger -->
     <div class="card">
@@ -38,14 +55,6 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
     </div>
 
     @if (detail(); as d) {
-      <div class="spread">
-        <h2>Uge {{ d.weekNumber }}, {{ d.year }}</h2>
-        <div class="row">
-          <a routerLink="/indkob"><button class="small primary">🛒 Indkøbsliste</button></a>
-          <button class="danger" (click)="deleteWeek(d.id)">Slet uge</button>
-        </div>
-      </div>
-
       <!-- Retter i ugen: vælg DAG først, så ret -->
       <div class="card">
         <h3>Retter</h3>
@@ -61,13 +70,8 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
             @for (wr of g.recipes; track wr.id) {
               <div class="list-item">
                 <div class="grow">
-                  <div>{{ wr.recipeName }} @if (wr.cookedUtc) { <span class="badge">✅ lavet</span> }</div>
+                  <div><b>{{ wr.recipeName }}</b></div>
                   <div class="muted">Basis {{ wr.baseServings }} pers.</div>
-                  @if (!wr.cookedUtc) {
-                    <button class="small" style="margin-top:.25rem" (click)="markCooked(wr.id)">🍳 Lavet</button>
-                  } @else {
-                    <button class="btn-link" style="font-size:.75rem" (click)="unmarkCooked(wr.id)">fortryd</button>
-                  }
                 </div>
                 <div>
                   <label>Personer</label>
@@ -125,17 +129,19 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
         <div class="line-input" style="margin-top:.6rem">
           <input class="full" list="manual-ing" placeholder="Vare (fx Kaffe)" [(ngModel)]="manualText" />
           <input type="number" min="0" step="0.001" placeholder="Antal" [(ngModel)]="manualQty" />
-          <select [(ngModel)]="manualUnit">
-            @for (u of units; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
-          </select>
+          <input list="manual-units" placeholder="Enhed" autocomplete="off" [(ngModel)]="manualUnit" />
           <button class="primary" (click)="addManual()">+</button>
         </div>
         <datalist id="manual-ing">
           @for (i of ingredients(); track i.id) { <option [value]="i.name"></option> }
         </datalist>
+        <datalist id="manual-units">
+          @for (u of unitOptions(); track u) { <option [value]="u"></option> }
+        </datalist>
       </div>
     } @else {
-      <div class="empty">Vælg eller opret en uge for at planlægge.</div>
+      <app-empty-state icon="📅" title="Planlæg din første uge"
+        text="Vælg en uge ovenfor — eller opret en ny — og tilføj retter og varegrupper til dagene." />
     }
   `
 })
@@ -151,7 +157,8 @@ export class WeekPlanPage implements OnInit {
   selectedId = this.state.selectedWeekId;
 
   days = DAYS;
-  units = UNITS;
+  units = signal<string[]>([]);
+  unitOptions = computed(() => mergeUnitSuggestions(BASE_UNITS, this.units()));
   label = unitLabel;
 
   // Hvilken dag ret-vælgeren er åben for (undefined = lukket; null = "Uden bestemt dag").
@@ -174,12 +181,13 @@ export class WeekPlanPage implements OnInit {
   addGroupId: number | null = null;
   manualText = '';
   manualQty = 1;
-  manualUnit: Unit = 'Stk';
+  manualUnit: Unit = 'stk';
 
   ngOnInit() {
     this.api.getRecipes().subscribe(r => this.recipes.set(r));
     this.api.getItemGroups().subscribe(g => this.groups.set(g));
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
+    this.api.getUnits().subscribe(u => this.units.set(u));
     this.loadWeeks();
   }
 
@@ -233,16 +241,6 @@ export class WeekPlanPage implements OnInit {
   }
   removeRecipe(weekRecipeId: number) {
     this.api.removeWeekRecipe(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
-  }
-
-  // "Lavet": trækker rettens ingredienser (skaleret) fra køkkenlageret.
-  markCooked(weekRecipeId: number) {
-    if (!confirm('Markér som lavet? Ingredienserne trækkes fra køkkenlageret.')) return;
-    this.api.markCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
-  }
-  unmarkCooked(weekRecipeId: number) {
-    if (!confirm('Fortryd "lavet"-markeringen? (Lageret føres ikke tilbage automatisk.)')) return;
-    this.api.unmarkCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
   }
 
   addGroup() {
