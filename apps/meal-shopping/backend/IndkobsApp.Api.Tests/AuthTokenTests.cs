@@ -224,13 +224,14 @@ public class AuthTokenTests
     }
 
     [Fact]
-    public async Task Signup_afviser_for_kort_kode_og_dublet_email()
+    public async Task Signup_accepterer_kort_kode_men_afviser_dublet_email()
     {
         var dbName = Guid.NewGuid().ToString();
         var ctrl = NewController(dbName);
 
-        Assert.IsType<BadRequestObjectResult>(
-            (await ctrl.Signup(new SignupDto("a@b.dk", "kort", "Navn", HouseholdName: "H"))).Result);
+        // Ingen krav til adgangskode-længde længere: en kort kode accepteres.
+        Assert.IsType<AuthResultDto>(
+            (await ctrl.Signup(new SignupDto("kort@b.dk", "1", "Navn", HouseholdName: "H"))).Value);
 
         await ctrl.Signup(new SignupDto("dublet@b.dk", "kodekode12", "Navn", HouseholdName: "H"));
         var dup = await ctrl.Signup(new SignupDto("Dublet@b.dk", "kodekode12", "Anden", HouseholdName: "H2"));

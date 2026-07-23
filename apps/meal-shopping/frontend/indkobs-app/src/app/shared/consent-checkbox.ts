@@ -1,5 +1,4 @@
 import { Component, model } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 /**
@@ -16,24 +15,27 @@ import { RouterLink } from '@angular/router';
  */
 @Component({
   selector: 'consent-checkbox',
-  imports: [FormsModule, RouterLink],
+  imports: [RouterLink],
   template: `
     <label class="consent">
-      <input type="checkbox" [(ngModel)]="accepted" name="consent" />
+      <input type="checkbox" [checked]="accepted()" (change)="onToggle($event)" name="consent" />
       <span>
         Jeg accepterer
-        <a routerLink="/handelsbetingelser" target="_blank">handelsbetingelserne</a>
+        <a routerLink="/handelsbetingelser" target="_blank" (click)="$event.stopPropagation()">handelsbetingelserne</a>
         og
-        <a routerLink="/privatliv" target="_blank">privatlivspolitikken</a>.
+        <a routerLink="/privatliv" target="_blank" (click)="$event.stopPropagation()">privatlivspolitikken</a>.
       </span>
     </label>
   `,
   styles: [`
-    .consent { display: flex; gap: .5rem; align-items: flex-start; font-size: .9rem; color: var(--text); margin: .5rem 0; }
-    .consent input { width: auto; margin-top: .15rem; }
+    .consent { display: flex; gap: .55rem; align-items: flex-start; font-size: .9rem; color: var(--text); margin: .6rem 0; cursor: pointer; }
+    .consent input { width: auto; margin-top: .15rem; flex: 0 0 auto; width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
+    .consent a { font-weight: 600; }
   `]
 })
 export class ConsentCheckbox {
   /** Tovejs-bundet: sand når brugeren har accepteret. */
   readonly accepted = model(false);
+
+  onToggle(e: Event) { this.accepted.set((e.target as HTMLInputElement).checked); }
 }

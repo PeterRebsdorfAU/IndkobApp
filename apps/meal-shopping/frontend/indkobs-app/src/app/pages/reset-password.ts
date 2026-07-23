@@ -28,7 +28,7 @@ import { LogoMark } from '../shared/logo';
               <div class="field">
                 <label>Ny adgangskode</label>
                 <input type="password" autocomplete="new-password" [(ngModel)]="password" name="password"
-                       placeholder="Mindst 8 tegn" />
+                       placeholder="Vælg en ny adgangskode" />
               </div>
               <div class="field">
                 <label>Gentag adgangskode</label>
@@ -60,7 +60,7 @@ export class ResetPasswordPage {
   token = signal<string | null>(this.route.snapshot.queryParamMap.get('token'));
 
   submit() {
-    if (this.password.length < 8) { this.error.set('Adgangskoden skal være mindst 8 tegn.'); return; }
+    if (!this.password) { this.error.set('Skriv en ny adgangskode.'); return; }
     if (this.password !== this.repeat) { this.error.set('De to adgangskoder er ikke ens.'); return; }
     const t = this.token();
     if (!t) return;

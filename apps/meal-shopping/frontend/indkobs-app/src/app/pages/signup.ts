@@ -28,6 +28,7 @@ import { ConsentCheckbox } from '../shared/consent-checkbox';
         </div>
 
         <div class="login-body">
+          <a routerLink="/login" class="back-link">← Tilbage</a>
           <form (ngSubmit)="submit()">
             <div class="field">
               <label>Dit navn</label>
@@ -51,7 +52,7 @@ import { ConsentCheckbox } from '../shared/consent-checkbox';
             <div class="field">
               <label>Adgangskode</label>
               <input type="password" autocomplete="new-password" [(ngModel)]="password" name="password"
-                     placeholder="Mindst 8 tegn" />
+                     placeholder="Vælg en adgangskode" />
             </div>
 
             <consent-checkbox [(accepted)]="consent" />
@@ -95,7 +96,7 @@ export class SignupPage {
     if (!this.displayName.trim()) { this.error.set('Skriv dit navn.'); return; }
     if (!this.inviteToken() && !this.householdName.trim()) { this.error.set('Angiv et husstandsnavn.'); return; }
     if (!this.email.trim()) { this.error.set('Skriv din email.'); return; }
-    if (this.password.length < 8) { this.error.set('Adgangskoden skal være mindst 8 tegn.'); return; }
+    if (!this.password) { this.error.set('Skriv en adgangskode.'); return; }
     if (!this.consent()) { this.error.set('Du skal acceptere betingelserne.'); return; }
 
     this.error.set('');

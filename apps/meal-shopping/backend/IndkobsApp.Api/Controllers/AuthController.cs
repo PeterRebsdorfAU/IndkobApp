@@ -93,8 +93,8 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(display))
             return BadRequest(new { message = "Navn og email skal udfyldes." });
-        if ((dto.Password ?? "").Length < 8)
-            return BadRequest(new { message = "Adgangskoden skal være mindst 8 tegn." });
+        if (string.IsNullOrEmpty(dto.Password))
+            return BadRequest(new { message = "Skriv en adgangskode." });
         if (await _db.Users.AnyAsync(u => u.Email == email))
             return Conflict(new { message = "Der findes allerede en bruger med den email." });
 
@@ -177,8 +177,8 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
     {
-        if ((dto.NewPassword ?? "").Length < 8)
-            return BadRequest(new { message = "Adgangskoden skal være mindst 8 tegn." });
+        if (string.IsNullOrEmpty(dto.NewPassword))
+            return BadRequest(new { message = "Skriv en ny adgangskode." });
 
         var res = _tokens.ValidatePurpose(dto.Token, TokenService.PurposeResetPassword);
         if (res == null)
