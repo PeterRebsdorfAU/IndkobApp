@@ -49,6 +49,9 @@ import { Auth } from '../auth';
       <ul>
         <li><strong>Neon</strong> (database) — data lagres i EU (Frankfurt).</li>
         <li><strong>Render</strong> (server-hosting) — driftet i EU (Frankfurt).</li>
+        <li><strong>Google (Gemini)</strong> — <em>kun hvis du bruger AI-scanning af en opskrift</em>: det
+          billede, du vælger, sendes til Google til analyse, så titel, ingredienser og fremgangsmåde kan
+          læses automatisk. Billedet behandles til dette formål og gemmes ikke hos os som en del af scanningen.</li>
       </ul>
       <p>Der er indgået databehandleraftaler med disse leverandører (se vores interne GDPR-dokumentation).</p>
 

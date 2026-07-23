@@ -51,6 +51,11 @@ if (string.Equals(builder.Configuration["Email:Provider"], "smtp", StringCompari
 else
     builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 
+// AI-scanning af opskrift-billeder (valgfri). Scanneren ligger bag IRecipeScanner og er i
+// DVALE uden Gemini:ApiKey — så registreringen er altid additiv (samme mønster som IEmailSender).
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IRecipeScanner, GeminiRecipeScanner>();
+
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "";
 if (jwtKey.Length < 32)
     throw new InvalidOperationException("Jwt:Key mangler eller er for kort (mindst 32 tegn). Sæt env-var Jwt__Key i produktion.");

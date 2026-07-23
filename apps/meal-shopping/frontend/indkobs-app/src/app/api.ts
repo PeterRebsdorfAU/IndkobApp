@@ -46,6 +46,15 @@ export class Api {
     return this.http.post<Recipe>(`${API}/recipes/${id}/image`, form);
   }
   deleteRecipeImage(id: number) { return this.http.delete(`${API}/recipes/${id}/image`); }
+
+  // AI-scanning af opskrift-billede (valgfri feature). enabled() styrer om knappen vises;
+  // scan() sender billedet og får et RecipeUpsert til gennemsyn (intet gemmes server-side).
+  scanRecipeEnabled(): Observable<{ enabled: boolean }> { return this.http.get<{ enabled: boolean }>(`${API}/recipes/scan/enabled`); }
+  scanRecipe(image: Blob): Observable<RecipeUpsert> {
+    const form = new FormData();
+    form.append('file', image, 'opskrift.jpg');
+    return this.http.post<RecipeUpsert>(`${API}/recipes/scan`, form);
+  }
   // Fulde URL'er til billed-endpoints (hentes med Bearer-token via secure-image-komponenten).
   recipeImageUrl(id: number) { return `${API}/recipes/${id}/image`; }
   catalogImageUrl(id: number) { return `${API}/catalog/recipes/${id}/image`; }

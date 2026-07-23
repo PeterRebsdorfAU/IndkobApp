@@ -7,6 +7,7 @@ import { IngredientLinesEditor } from '../shared/ingredient-lines';
 import { EmptyState } from '../shared/empty-state';
 import { SecureImage } from '../shared/secure-image';
 import { downscaleImage } from '../shared/image-util';
+import { ToastService } from '../shared/toast';
 
 @Component({
   selector: 'page-recipes',
@@ -71,6 +72,21 @@ import { downscaleImage } from '../shared/image-util';
       @if (editing(); as form) {
         <div class="card">
           <h2>{{ form.id ? 'Rediger ret' : 'Ny ret' }}</h2>
+
+          @if (scanEnabled()) {
+            <!-- AI-scanning: udfyld felterne fra et foto af en opskrift (kun forudfyldning; intet gemmes) -->
+            <div class="field">
+              <button type="button" class="small" (click)="scanInput.click()" [disabled]="scanning()">
+                {{ scanning() ? '📷 Læser billedet…' : '📷 Scan opskrift' }}
+              </button>
+              <input #scanInput type="file" accept="image/*" hidden (change)="onScanPicked($event)" />
+              <div class="muted" style="font-size:.8rem;margin-top:.3rem">
+                Vælg et foto af en opskrift — AI læser titel, ingredienser og fremgangsmåde.
+                Gennemse og ret felterne inden du gemmer.
+              </div>
+            </div>
+          }
+
           <div class="field">
             <label>Navn</label>
             <input [(ngModel)]="form.name" placeholder="Fx Spaghetti med kødsovs" />
@@ -175,6 +191,11 @@ import { downscaleImage } from '../shared/image-util';
 export class RecipesPage implements OnInit {
   private api = inject(Api);
   private weekState = inject(WeekState);
+  private toast = inject(ToastService);
+
+  // AI-scanning af opskrift-billede: kun tilgængelig når backenden har en Gemini-nøgle.
+  scanEnabled = signal(false);
+  scanning = signal(false);
 
   recipes = signal<Recipe[]>([]);
   ingredients = signal<Ingredient[]>([]);
@@ -214,6 +235,11 @@ export class RecipesPage implements OnInit {
   ngOnInit() {
     this.load();
     this.loadIngredients();
+    // Er AI-scanning slået til på serveren? (Skjuler knappen når featuren er i dvale.)
+    this.api.scanRecipeEnabled().subscribe({
+      next: r => this.scanEnabled.set(r.enabled),
+      error: () => this.scanEnabled.set(false)
+    });
     this.api.getCatalog().subscribe(c => this.catalog.set(c));
     // Vis hvilken uge "Tilføj" lægger retten på (den senest valgte uge).
     const wid = this.weekState.selectedWeekId();
@@ -285,6 +311,48 @@ export class RecipesPage implements OnInit {
   private resetImageState() {
     this.clearPendingImage();
     this.editImageState.set('keep');
+  }
+
+  // ---------- AI-scanning: forudfyld editoren fra et foto ----------
+  async onScanPicked(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // tillad at vælge samme fil igen
+    if (!file || !this.editing()) return;
+
+    let blob: Blob = file;
+    try {
+      blob = await downscaleImage(file); // nedskalér klient-side (serveren komprimerer også)
+    } catch {
+      // Kunne ikke nedskalere — send originalen, serveren håndterer den.
+    }
+
+    this.scanning.set(true);
+    this.api.scanRecipe(blob).subscribe({
+      next: scanned => {
+        this.scanning.set(false);
+        const f = this.editing();
+        if (!f) return;
+        // Byg et nyt form-objekt så child-editoren (ingredient-lines) genbinder linjerne.
+        this.editing.set({
+          ...f,
+          name: scanned.name?.trim() || f.name,
+          servings: scanned.servings || f.servings,
+          method: scanned.method ?? f.method,
+          ingredients: (scanned.ingredients?.length ? scanned.ingredients : f.ingredients).map(l => ({
+            ingredientId: l.ingredientId ?? null,
+            ingredientName: l.ingredientName,
+            quantity: l.quantity,
+            unit: l.unit
+          }))
+        });
+        this.toast.success('Opskriften er læst ind — gennemse og ret felterne inden du gemmer.');
+      },
+      error: () => {
+        this.scanning.set(false);
+        this.toast.error('Kunne ikke læse opskriften fra billedet. Prøv igen eller et andet foto.');
+      }
+    });
   }
 
   save() {

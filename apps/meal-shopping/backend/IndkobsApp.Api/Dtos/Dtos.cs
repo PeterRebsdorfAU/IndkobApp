@@ -20,6 +20,8 @@ public record IngredientLineDto(int Id, int IngredientId, string IngredientName,
 // HasImage = opskriften har et billede (hentes separat via GET /api/recipes/{id}/image).
 public record RecipeDto(int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients, string? Method = null, bool IsPublic = false, bool HasImage = false);
 public record RecipeUpsertDto(string Name, string? Note, int Servings, List<IngredientLineInputDto> Ingredients, string? Method = null);
+// AI-scanning af opskrift-billede: fortæller om featuren er tilgængelig (Gemini-nøgle konfigureret).
+public record ScanEnabledDto(bool Enabled);
 
 // ---------- Varegrupper ----------
 public record ItemGroupDto(int Id, string Name, List<IngredientLineDto> Ingredients);
