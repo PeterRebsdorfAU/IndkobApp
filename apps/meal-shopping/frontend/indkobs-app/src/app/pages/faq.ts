@@ -2,13 +2,14 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Router } from '@angular/router';
 import { resetOnboarding } from '../shared/onboarding-state';
+import { environment } from '../../environments/environment';
 
 // Support-adresse. Ét sted, så den er nem at ændre. (Skift til jeres rigtige
 // support-mail før udrulning.)
 const SUPPORT_EMAIL = 'support@madplan-app.dk';
 
-/** Ét spørgsmål/svar i FAQ'en. */
-interface Qa { q: string; a: string; }
+/** Ét spørgsmål/svar i FAQ'en. `ordersOnly` = vises kun når butiks-ordrer er slået til. */
+interface Qa { q: string; a: string; ordersOnly?: boolean; }
 
 /**
  * Hjælp: "Kom godt i gang", ofte stillede spørgsmål og support-link.
@@ -30,7 +31,9 @@ interface Qa { q: string; a: string; }
       <ol class="steps">
         <li><b>Planlæg ugen.</b> På <a routerLink="/uge">Uge</a> vælger I dagens retter og varegrupper.</li>
         <li><b>Få indkøbslisten.</b> <a routerLink="/indkob">Indkøb</a> samler alt, omregner enheder og sorterer efter butik.</li>
-        <li><b>Send til butik (valgfrit).</b> Send listen som en ordre fra indkøbssiden og følg status.</li>
+        @if (retailerOrders) {
+          <li><b>Send til butik (valgfrit).</b> Send listen som en ordre fra indkøbssiden og følg status.</li>
+        }
       </ol>
       <button class="small" (click)="replayIntro()">▶︎ Se introduktionen igen</button>
     </div>
@@ -38,7 +41,7 @@ interface Qa { q: string; a: string; }
     <!-- FAQ -->
     <div class="card">
       <h2 style="margin-top:0">Ofte stillede spørgsmål</h2>
-      @for (item of faq; track item.q) {
+      @for (item of visibleFaq; track item.q) {
         <details class="faq-item">
           <summary>{{ item.q }}</summary>
           <p>{{ item.a }}</p>
@@ -46,13 +49,15 @@ interface Qa { q: string; a: string; }
       }
     </div>
 
-    <!-- Support -->
-    <div class="card">
-      <h2 style="margin-top:0">Brug for mere hjælp?</h2>
-      <p class="muted">Kan du ikke finde svaret her, så skriv til os — vi vender tilbage hurtigst muligt.</p>
-      <a class="support-btn" [href]="supportMailto">✉️ Kontakt support</a>
-      <p class="muted" style="margin-top:.5rem">Eller send en mail til <a [href]="'mailto:' + supportEmail">{{ supportEmail }}</a>.</p>
-    </div>
+    <!-- Support (midlertidigt skjult bag feature-flag environment.features.supportContact) -->
+    @if (supportContact) {
+      <div class="card">
+        <h2 style="margin-top:0">Brug for mere hjælp?</h2>
+        <p class="muted">Kan du ikke finde svaret her, så skriv til os — vi vender tilbage hurtigst muligt.</p>
+        <a class="support-btn" [href]="supportMailto">✉️ Kontakt support</a>
+        <p class="muted" style="margin-top:.5rem">Eller send en mail til <a [href]="'mailto:' + supportEmail">{{ supportEmail }}</a>.</p>
+      </div>
+    }
   `,
   styles: [`
     .steps { margin: .2rem 0 .8rem; padding-left: 1.2rem; }
@@ -80,9 +85,16 @@ interface Qa { q: string; a: string; }
 export class FaqPage {
   private router = inject(Router);
 
+  // Feature-flags (koden bevares, vises bare ikke).
+  readonly retailerOrders = environment.features.retailerOrders;
+  readonly supportContact = environment.features.supportContact;
+
   readonly supportEmail = SUPPORT_EMAIL;
   readonly supportMailto =
     `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Hjælp til Madplan & Indkøb')}`;
+
+  /** FAQ filtreret efter aktive features (skjuler fx butiks-spørgsmålet når ordrer er slået fra). */
+  get visibleFaq(): Qa[] { return this.faq.filter(x => this.retailerOrders || !x.ordersOnly); }
 
   readonly faq: Qa[] = [
     {
@@ -108,7 +120,8 @@ export class FaqPage {
     {
       q: 'Hvordan sender jeg listen til en butik?',
       a: 'Hvis din butik er tilknyttet, kan du sende hele ugens indkøbsliste som en ordre fra ' +
-         'indkøbssiden og følge status fra Modtaget til Afhentet under "Mine ordrer".'
+         'indkøbssiden og følge status fra Modtaget til Afhentet under "Mine ordrer".',
+      ordersOnly: true
     },
     {
       q: 'Forsvinder mine gamle uger?',

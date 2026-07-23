@@ -586,6 +586,8 @@ label.list-item:hover, .list-item.tap:hover { background: var(--surface-2); }
   .sl-grid { grid-template-columns: 1fr 330px; grid-template-areas: "main side"; align-items: start; }
   .sl-side { position: sticky; top: calc(var(--topbar-h) + .8rem); }
 }
+/* Når ordre-sidebaren er skjult (feature-flag): enkelt kolonne, intet tomt hul. */
+.sl-grid.no-side { grid-template-columns: 1fr; grid-template-areas: "main"; }
 
 /* ---------------------------------------------------------------------
    18. Tomme tilstande

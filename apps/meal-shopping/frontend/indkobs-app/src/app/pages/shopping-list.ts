@@ -6,6 +6,7 @@ import { WeekState } from '../shared/week-state';
 import { ToastService } from '../shared/toast';
 import { EmptyState } from '../shared/empty-state';
 import { ShoppingList, ShoppingLine, Ingredient, Unit, BASE_UNITS, mergeUnitSuggestions, unitLabel, Store, Order } from '../models';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'page-shopping-list',
@@ -45,8 +46,11 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, BASE_UNITS, mergeUnitSugg
       }
 
       <!-- To kolonner på desktop: liste til venstre, handlinger (send/ordrer) til højre.
-           På mobil stables handlingerne ØVERST (grid-template-areas skifter). -->
-      <div class="sl-grid">
+           På mobil stables handlingerne ØVERST (grid-template-areas skifter).
+           Ordre-delen ("Send til butik" + "Mine ordrer") er midlertidigt skjult bag et
+           feature-flag (environment.features.retailerOrders) — koden bevares. -->
+      <div class="sl-grid" [class.no-side]="!retailerOrders">
+        @if (retailerOrders) {
         <aside class="sl-side">
           <!-- Send til butik -->
           <div class="card">
@@ -83,6 +87,7 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, BASE_UNITS, mergeUnitSugg
             </div>
           }
         </aside>
+        }
 
         <div class="sl-main">
           @for (g of l.groups; track g.categoryName) {
@@ -165,6 +170,9 @@ export class ShoppingListPage implements OnInit, OnDestroy {
   shareUrl = signal('');
   shareCopied = signal(false);
 
+  // Ordre-delen ("Send til butik" + "Mine ordrer") kan slås fra via feature-flag — koden bevares.
+  retailerOrders = environment.features.retailerOrders;
+
   // Ordrer (send til butik)
   stores = signal<Store[]>([]);
   myOrders = signal<Order[]>([]);
@@ -175,11 +183,14 @@ export class ShoppingListPage implements OnInit, OnDestroy {
   ngOnInit() {
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
     this.api.getUnits().subscribe(u => this.units.set(u));
-    this.api.getStores().subscribe(s => this.stores.set(s));
-    this.loadOrders();
     this.load();
-    // Auto-opdatér ordre-status hvert 15. sek, så "Klar" dukker op uden genindlæsning.
-    this.pollId = setInterval(() => this.loadOrders(), 15000);
+    // Ordre-relaterede kald + polling køres kun når funktionen er slået til.
+    if (this.retailerOrders) {
+      this.api.getStores().subscribe(s => this.stores.set(s));
+      this.loadOrders();
+      // Auto-opdatér ordre-status hvert 15. sek, så "Klar" dukker op uden genindlæsning.
+      this.pollId = setInterval(() => this.loadOrders(), 15000);
+    }
   }
 
   ngOnDestroy() { if (this.pollId) clearInterval(this.pollId); }
