@@ -9,32 +9,26 @@ import { LogoMark } from '../shared/logo';
   imports: [RouterLink, LogoMark],
   template: `
     <div class="login-wrap">
-      <div class="card login-card">
-        <div class="login-brand">
-          <app-logo [size]="52" />
+      <div class="login-card">
+        <div class="login-hero">
+          <span class="logo-chip"><app-logo [size]="44" /></span>
           <h1>Bekræft email</h1>
         </div>
 
-        @if (state() === 'loading') {
-          <p class="muted" style="text-align:center">Bekræfter din email…</p>
-        } @else if (state() === 'ok') {
-          <div class="success">{{ message() }}</div>
-        } @else {
-          <div class="error">{{ message() }}</div>
-        }
+        <div class="login-body">
+          @if (state() === 'loading') {
+            <p class="muted" style="text-align:center">Bekræfter din email…</p>
+          } @else if (state() === 'ok') {
+            <div class="auth-note">{{ message() }}</div>
+          } @else {
+            <div class="error">{{ message() }}</div>
+          }
 
-        <a routerLink="/uge" class="primary" style="width:100%;display:block;text-align:center;margin-top:1rem">Fortsæt til appen</a>
+          <a routerLink="/uge" class="btn-block" style="margin-top:1rem">Fortsæt til appen</a>
+        </div>
       </div>
     </div>
-  `,
-  styles: [`
-    .login-wrap { min-height: 82vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0; }
-    .login-card { width: 100%; max-width: 400px; padding: 1.6rem 1.4rem; box-shadow: var(--shadow-md); }
-    .login-brand { text-align: center; margin-bottom: 1.3rem; }
-    .login-brand app-logo { margin-bottom: .7rem; }
-    .login-brand h1 { font-size: 1.35rem; margin: 0; }
-    .success { background: var(--surface-2, #eef7ee); border-radius: var(--radius, 8px); padding: .8rem 1rem; font-size: .92rem; }
-  `]
+  `
 })
 export class ConfirmEmailPage {
   private auth = inject(Auth);

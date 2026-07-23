@@ -18,8 +18,11 @@ interface Qa { q: string; a: string; }
   selector: 'page-faq',
   imports: [RouterLink],
   template: `
-    <h1>Hjælp &amp; FAQ</h1>
-    <p class="muted">Kom godt i gang med Madplan &amp; Indkøb, og find svar på de mest almindelige spørgsmål.</p>
+    <div class="hero">
+      <span class="eyebrow">Hjælp</span>
+      <div class="hero-title">Hjælp &amp; FAQ</div>
+      <div class="hero-sub">Kom godt i gang med Madplan &amp; Indkøb, og find svar på de mest almindelige spørgsmål.</div>
+    </div>
 
     <!-- Kom godt i gang -->
     <div class="card">
@@ -65,10 +68,13 @@ interface Qa { q: string; a: string; }
     .faq-item[open] summary::before { content: '－'; }
     .faq-item p { margin: 0 0 .7rem 1.4rem; color: var(--muted); line-height: 1.5; }
     .support-btn {
-      display: inline-block; background: var(--primary); color: #fff;
-      padding: .6rem .9rem; border-radius: 10px; text-decoration: none; font-weight: 600;
+      display: inline-block; background: var(--forest); color: #fff;
+      padding: .6rem 1.05rem; border-radius: var(--pill); text-decoration: none; font-weight: 700;
       min-height: 44px; line-height: 1.9;
+      box-shadow: 0 10px 22px -12px rgba(9, 60, 38, .8);
+      transition: background var(--t-fast), transform var(--t-fast);
     }
+    .support-btn:hover { background: var(--forest-hover); color: #fff; transform: translateY(-2px); }
   `]
 })
 export class FaqPage {
