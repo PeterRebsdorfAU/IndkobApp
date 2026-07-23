@@ -91,7 +91,7 @@ public class ItemGroupsController : ControllerBase
             {
                 Ingredient = ing,
                 Quantity = line.Quantity,
-                Unit = line.Unit
+                Unit = Units.Clean(line.Unit)
             });
         }
     }

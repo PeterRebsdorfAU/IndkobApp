@@ -31,7 +31,7 @@ public class ShoppingListService
         public int CategorySort { get; init; }
         public bool IsManual { get; init; }
         public MeasureFamily Family { get; init; }
-        public Unit CountUnit { get; init; } // kun relevant for Family == Count
+        public string CountUnit { get; init; } = Units.Default; // kun relevant for Family == Count (vist tekst)
         public decimal AccumulatedBase { get; set; }
         public bool IsChecked { get; set; }
         public HashSet<string> Sources { get; } = new();
@@ -111,7 +111,7 @@ public class ShoppingListService
     private static ShoppingLineDto ToLineDto(Accumulator a)
     {
         decimal qty;
-        Unit unit;
+        string unit;
 
         if (a.Family == MeasureFamily.Count)
         {
@@ -136,13 +136,13 @@ public class ShoppingListService
     }
 
     private void Add(Dictionary<string, Accumulator> acc, IReadOnlyDictionary<string, bool> checks,
-        Ingredient ingredient, decimal quantity, Unit unit, string source, bool isManual = false)
+        Ingredient ingredient, decimal quantity, string unit, string source, bool isManual = false)
     {
         var family = UnitMath.FamilyOf(unit);
-        // Linjer slås kun sammen hvis: samme ingrediens OG samme familie
-        // (for count desuden samme enhed). g↔kg og ml↔l lander i samme bøtte.
+        // Linjer slås kun sammen hvis: samme ingrediens OG samme familie (for count desuden
+        // samme enhed, case-insensitivt). g↔kg og ml↔l lander i samme bøtte.
         var key = family == MeasureFamily.Count
-            ? $"ing:{ingredient.Id}:cnt:{unit}"
+            ? $"ing:{ingredient.Id}:cnt:{Units.NormalizeKey(unit)}"
             : $"ing:{ingredient.Id}:{family}";
 
         var a = GetOrCreate(acc, checks, key, () => new Accumulator
@@ -163,13 +163,13 @@ public class ShoppingListService
     }
 
     private void AddFreeText(Dictionary<string, Accumulator> acc, IReadOnlyDictionary<string, bool> checks,
-        string text, decimal quantity, Unit unit)
+        string text, decimal quantity, string unit)
     {
         var name = text.Trim();
         var normalized = name.ToLowerInvariant();
         var family = UnitMath.FamilyOf(unit);
         var key = family == MeasureFamily.Count
-            ? $"txt:{normalized}:cnt:{unit}"
+            ? $"txt:{normalized}:cnt:{Units.NormalizeKey(unit)}"
             : $"txt:{normalized}:{family}";
 
         var a = GetOrCreate(acc, checks, key, () => new Accumulator

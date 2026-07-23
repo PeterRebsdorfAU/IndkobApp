@@ -41,7 +41,7 @@ public class RecipeSharingTests
             Name = navn,
             Servings = 4,
             Method = "1) Brun kødet. 2) Saml lag.",
-            Ingredients = { new RecipeIngredient { Ingredient = ing, Quantity = 500, Unit = Unit.G } }
+            Ingredients = { new RecipeIngredient { Ingredient = ing, Quantity = 500, Unit = Units.G } }
         };
         db.Recipes.Add(recipe);
         db.SaveChanges();

@@ -5,7 +5,7 @@ import { Api } from '../api';
 import { WeekState } from '../shared/week-state';
 import { ToastService } from '../shared/toast';
 import { EmptyState } from '../shared/empty-state';
-import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, Order } from '../models';
+import { ShoppingList, ShoppingLine, Ingredient, Unit, BASE_UNITS, mergeUnitSuggestions, unitLabel, Store, Order } from '../models';
 
 @Component({
   selector: 'page-shopping-list',
@@ -113,13 +113,14 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
             <div class="line-input">
               <input class="full" list="sl-ing" placeholder="Vare" [(ngModel)]="text" />
               <input type="number" min="0" step="0.001" placeholder="Antal" [(ngModel)]="qtyInput" />
-              <select [(ngModel)]="unit">
-                @for (u of units; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
-              </select>
+              <input list="sl-units" placeholder="Enhed" autocomplete="off" [(ngModel)]="unit" />
               <button class="primary" (click)="add()">+</button>
             </div>
             <datalist id="sl-ing">
               @for (i of ingredients(); track i.id) { <option [value]="i.name"></option> }
+            </datalist>
+            <datalist id="sl-units">
+              @for (u of unitOptions(); track u) { <option [value]="u"></option> }
             </datalist>
             <p class="muted">Løse varer kan fjernes igen på <a routerLink="/uge">Uge-fanen</a>.</p>
           </div>
@@ -155,11 +156,12 @@ export class ShoppingListPage implements OnInit, OnDestroy {
     return 'Godt i gang';
   });
 
-  units = UNITS;
+  units = signal<string[]>([]);
+  unitOptions = computed(() => mergeUnitSuggestions(BASE_UNITS, this.units()));
   label = unitLabel;
   text = '';
   qtyInput = 1;
-  unit: Unit = 'Stk';
+  unit: Unit = 'stk';
   shareUrl = signal('');
   shareCopied = signal(false);
 
@@ -172,6 +174,7 @@ export class ShoppingListPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
+    this.api.getUnits().subscribe(u => this.units.set(u));
     this.api.getStores().subscribe(s => this.stores.set(s));
     this.loadOrders();
     this.load();

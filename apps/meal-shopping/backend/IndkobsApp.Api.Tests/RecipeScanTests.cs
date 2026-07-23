@@ -8,41 +8,41 @@ namespace IndkobsApp.Api.Tests;
 
 /// <summary>
 /// Tests for AI-scanning-logikken der IKKE rører nettet: enheds-mapping fra fri tekst til
-/// vores <see cref="Unit"/>-enum, kortlægning af et scanner-resultat til et RecipeUpsert-DTO,
+/// vores de KENDTE enheder, kortlægning af et scanner-resultat til et RecipeUpsert-DTO,
 /// samt at det hele fungerer bag <see cref="IRecipeScanner"/> med en fake (selve Gemini-kaldet
 /// er isoleret bag interfacet). Live-kaldet testes af ejeren med en rigtig nøgle.
 /// </summary>
 public class RecipeScanTests
 {
     [Theory]
-    [InlineData("g", Unit.G)]
-    [InlineData("gram", Unit.G)]
-    [InlineData("Gram", Unit.G)]
-    [InlineData("kg", Unit.Kg)]
-    [InlineData("kilo", Unit.Kg)]
-    [InlineData("ml", Unit.Ml)]
-    [InlineData("milliliter", Unit.Ml)]
-    [InlineData("l", Unit.L)]
-    [InlineData("liter", Unit.L)]
-    [InlineData("spsk", Unit.Spsk)]
-    [InlineData("spiseskefuld", Unit.Spsk)]
-    [InlineData("tbsp", Unit.Spsk)]
-    [InlineData("tsk", Unit.Tsk)]
-    [InlineData("tsp", Unit.Tsk)]
-    [InlineData("dåse", Unit.Daase)]
-    [InlineData("dåser", Unit.Daase)]
-    [InlineData("daase", Unit.Daase)]
-    [InlineData("pakke", Unit.Pakke)]
-    [InlineData("pk", Unit.Pakke)]
-    [InlineData("knivspids", Unit.Knivspids)]
-    [InlineData("bundt", Unit.Bundt)]
-    [InlineData("fed", Unit.Fed)]
-    [InlineData("clove", Unit.Fed)]
-    [InlineData("stk", Unit.Stk)]
-    [InlineData("stk.", Unit.Stk)]
-    [InlineData("stykke", Unit.Stk)]
-    [InlineData("piece", Unit.Stk)]
-    public void Map_kortlægger_kendte_enheder(string raw, Unit expected)
+    [InlineData("g", Units.G)]
+    [InlineData("gram", Units.G)]
+    [InlineData("Gram", Units.G)]
+    [InlineData("kg", Units.Kg)]
+    [InlineData("kilo", Units.Kg)]
+    [InlineData("ml", Units.Ml)]
+    [InlineData("milliliter", Units.Ml)]
+    [InlineData("l", Units.L)]
+    [InlineData("liter", Units.L)]
+    [InlineData("spsk", Units.Spsk)]
+    [InlineData("spiseskefuld", Units.Spsk)]
+    [InlineData("tbsp", Units.Spsk)]
+    [InlineData("tsk", Units.Tsk)]
+    [InlineData("tsp", Units.Tsk)]
+    [InlineData("dåse", Units.Daase)]
+    [InlineData("dåser", Units.Daase)]
+    [InlineData("daase", Units.Daase)]
+    [InlineData("pakke", Units.Pakke)]
+    [InlineData("pk", Units.Pakke)]
+    [InlineData("knivspids", Units.Knivspids)]
+    [InlineData("bundt", Units.Bundt)]
+    [InlineData("fed", Units.Fed)]
+    [InlineData("clove", Units.Fed)]
+    [InlineData("stk", Units.Stk)]
+    [InlineData("stk.", Units.Stk)]
+    [InlineData("stykke", Units.Stk)]
+    [InlineData("piece", Units.Stk)]
+    public void Map_kortlægger_kendte_enheder(string raw, string expected)
     {
         Assert.Equal(expected, RecipeScanUnitMapper.Map(raw));
     }
@@ -51,11 +51,18 @@ public class RecipeScanTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    [InlineData("håndfuld")]     // ukendt dansk enhed
-    [InlineData("blob")]         // ukendt
-    public void Map_falder_tilbage_til_Stk_for_ukendt_eller_tomt(string? raw)
+    public void Map_falder_tilbage_til_Stk_for_tomt(string? raw)
     {
-        Assert.Equal(Unit.Stk, RecipeScanUnitMapper.Map(raw));
+        Assert.Equal(Units.Stk, RecipeScanUnitMapper.Map(raw));
+    }
+
+    [Theory]
+    [InlineData("håndfuld", "håndfuld")] // ukendt dansk enhed — bevares nu som fri tekst
+    [InlineData("blob", "blob")]         // ukendt — bevares (renset/trimmet)
+    [InlineData("  Glas  ", "Glas")]     // trimmes, men egen skrivemåde bevares
+    public void Map_bevarer_ukendt_enhed_som_fri_tekst(string raw, string expected)
+    {
+        Assert.Equal(expected, RecipeScanUnitMapper.Map(raw));
     }
 
     [Fact]
@@ -81,13 +88,13 @@ public class RecipeScanTests
 
         Assert.Equal("Hakket oksekød", dto.Ingredients[0].IngredientName);
         Assert.Equal(500m, dto.Ingredients[0].Quantity);
-        Assert.Equal(Unit.G, dto.Ingredients[0].Unit);
+        Assert.Equal(Units.G, dto.Ingredients[0].Unit);
 
-        Assert.Equal(Unit.Stk, dto.Ingredients[1].Unit);
+        Assert.Equal(Units.Stk, dto.Ingredients[1].Unit);
 
         // Manglende mængde → 1 som fornuftig default (brugeren kan rette).
         Assert.Equal(1m, dto.Ingredients[2].Quantity);
-        Assert.Equal(Unit.Knivspids, dto.Ingredients[2].Unit);
+        Assert.Equal(Units.Knivspids, dto.Ingredients[2].Unit);
     }
 
     [Fact]
@@ -185,6 +192,6 @@ public class RecipeScanTests
 
         Assert.Equal("Boller i karry", dto.Name);
         Assert.Equal(2, dto.Ingredients.Count);
-        Assert.Equal(Unit.Spsk, dto.Ingredients[1].Unit);
+        Assert.Equal(Units.Spsk, dto.Ingredients[1].Unit);
     }
 }

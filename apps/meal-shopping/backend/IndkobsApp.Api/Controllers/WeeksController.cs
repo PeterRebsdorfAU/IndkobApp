@@ -205,7 +205,7 @@ public class WeeksController : ControllerBase
             IngredientId = ingredientId,
             FreeText = freeText,
             Quantity = dto.Quantity,
-            Unit = dto.Unit
+            Unit = Units.Clean(dto.Unit)
         });
         await _db.SaveChangesAsync();
         return (await BuildDetail(id))!;

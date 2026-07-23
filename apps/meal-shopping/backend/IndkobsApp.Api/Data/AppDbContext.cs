@@ -30,10 +30,8 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder b)
     {
-        // Gem Unit-enum som læsbar tekst i alle tabeller (pænt i SSMS).
-        var unitConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion
-            .EnumToStringConverter<Unit>();
-
+        // Enheder er fri tekst (string). Kolonnen rummer både de kendte enheder ("g", "stk",
+        // "dåse" …) og brugerens egne (fx "glas", "kviste"); derfor lidt ekstra plads.
         b.Entity<Household>(e =>
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
@@ -89,7 +87,7 @@ public class AppDbContext : DbContext
         b.Entity<RecipeIngredient>(e =>
         {
             e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.Unit).IsRequired().HasMaxLength(Units.MaxLength);
             e.HasOne(x => x.Recipe)
                 .WithMany(r => r.Ingredients)
                 .HasForeignKey(x => x.RecipeId)
@@ -110,7 +108,7 @@ public class AppDbContext : DbContext
         b.Entity<ItemGroupIngredient>(e =>
         {
             e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.Unit).IsRequired().HasMaxLength(Units.MaxLength);
             e.HasOne(x => x.ItemGroup)
                 .WithMany(g => g.Ingredients)
                 .HasForeignKey(x => x.ItemGroupId)
@@ -156,7 +154,7 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.FreeText).HasMaxLength(150);
             e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.Unit).IsRequired().HasMaxLength(Units.MaxLength);
             e.HasOne(x => x.Week)
                 .WithMany(w => w.ManualItems)
                 .HasForeignKey(x => x.WeekId)
@@ -194,7 +192,7 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
             e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.Unit).IsRequired().HasMaxLength(Units.MaxLength);
             e.HasOne(x => x.CatalogRecipe)
                 .WithMany(r => r.Ingredients)
                 .HasForeignKey(x => x.CatalogRecipeId)
@@ -246,7 +244,7 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
             e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
+            e.Property(x => x.Unit).IsRequired().HasMaxLength(Units.MaxLength);
             e.Property(x => x.CategoryName).HasMaxLength(100);
             e.HasOne(x => x.Order).WithMany(o => o.Lines).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
         });

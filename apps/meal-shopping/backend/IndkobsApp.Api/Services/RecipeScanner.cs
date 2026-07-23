@@ -215,40 +215,42 @@ public sealed class GeminiRecipeScanner : IRecipeScanner
 }
 
 /// <summary>
-/// Kortlægger en fri-tekst enhed (dansk/engelsk, ental/flertal) til vores <see cref="Unit"/>-enum.
-/// Ukendte/tomme enheder falder tilbage til <see cref="Unit.Stk"/> — brugeren kan rette det
-/// i editoren inden opskriften gemmes.
+/// Kortlægger en fri-tekst enhed (dansk/engelsk, ental/flertal) til en af vores KENDTE
+/// enheder (<see cref="Units"/>), så scannede opskrifter bruger samme skrivemåde som resten.
+/// Ukendte enheder beholdes som fri tekst (trimmet); helt tomme falder tilbage til
+/// <see cref="Units.Stk"/> — brugeren kan altid rette det i editoren inden opskriften gemmes.
 /// </summary>
 public static class RecipeScanUnitMapper
 {
-    private static readonly Dictionary<string, Unit> Table = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> Table = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["g"] = Unit.G, ["gram"] = Unit.G, ["gr"] = Unit.G,
-        ["kg"] = Unit.Kg, ["kilo"] = Unit.Kg, ["kilogram"] = Unit.Kg,
-        ["ml"] = Unit.Ml, ["milliliter"] = Unit.Ml,
-        ["l"] = Unit.L, ["liter"] = Unit.L, ["ltr"] = Unit.L,
-        ["spsk"] = Unit.Spsk, ["spiseskefuld"] = Unit.Spsk, ["spiseske"] = Unit.Spsk, ["tbsp"] = Unit.Spsk,
-        ["tsk"] = Unit.Tsk, ["teskefuld"] = Unit.Tsk, ["teske"] = Unit.Tsk, ["tsp"] = Unit.Tsk,
-        ["dåse"] = Unit.Daase, ["dase"] = Unit.Daase, ["daase"] = Unit.Daase, ["can"] = Unit.Daase,
-        ["pakke"] = Unit.Pakke, ["pk"] = Unit.Pakke, ["pakning"] = Unit.Pakke, ["pack"] = Unit.Pakke, ["package"] = Unit.Pakke,
-        ["knivspids"] = Unit.Knivspids, ["pinch"] = Unit.Knivspids,
-        ["bundt"] = Unit.Bundt, ["bunch"] = Unit.Bundt,
-        ["fed"] = Unit.Fed, ["clove"] = Unit.Fed,
-        ["stk"] = Unit.Stk, ["styk"] = Unit.Stk, ["stykke"] = Unit.Stk, ["stk."] = Unit.Stk,
-        ["piece"] = Unit.Stk, ["pieces"] = Unit.Stk, ["pcs"] = Unit.Stk,
+        ["g"] = Units.G, ["gram"] = Units.G, ["gr"] = Units.G,
+        ["kg"] = Units.Kg, ["kilo"] = Units.Kg, ["kilogram"] = Units.Kg,
+        ["ml"] = Units.Ml, ["milliliter"] = Units.Ml,
+        ["l"] = Units.L, ["liter"] = Units.L, ["ltr"] = Units.L,
+        ["spsk"] = Units.Spsk, ["spiseskefuld"] = Units.Spsk, ["spiseske"] = Units.Spsk, ["tbsp"] = Units.Spsk,
+        ["tsk"] = Units.Tsk, ["teskefuld"] = Units.Tsk, ["teske"] = Units.Tsk, ["tsp"] = Units.Tsk,
+        ["dåse"] = Units.Daase, ["dase"] = Units.Daase, ["daase"] = Units.Daase, ["can"] = Units.Daase,
+        ["pakke"] = Units.Pakke, ["pk"] = Units.Pakke, ["pakning"] = Units.Pakke, ["pack"] = Units.Pakke, ["package"] = Units.Pakke,
+        ["knivspids"] = Units.Knivspids, ["pinch"] = Units.Knivspids,
+        ["bundt"] = Units.Bundt, ["bunch"] = Units.Bundt,
+        ["fed"] = Units.Fed, ["clove"] = Units.Fed,
+        ["stk"] = Units.Stk, ["styk"] = Units.Stk, ["stykke"] = Units.Stk, ["stk."] = Units.Stk,
+        ["piece"] = Units.Stk, ["pieces"] = Units.Stk, ["pcs"] = Units.Stk,
     };
 
-    public static Unit Map(string? raw)
+    public static string Map(string? raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return Unit.Stk;
-        // Normalisér: trim, fjern afsluttende punktum, lav flertal om til ental (fjern 'er'/'e'-hale sjældent nødvendigt).
+        if (string.IsNullOrWhiteSpace(raw)) return Units.Stk;
+        // Normalisér: trim, fjern afsluttende punktum.
         var key = raw.Trim().TrimEnd('.').ToLowerInvariant();
         if (Table.TryGetValue(key, out var unit)) return unit;
         // Prøv at strippe en dansk/engelsk flertals-endelse (fx "dåser"→"dåse", "pakker"→"pakke",
         // "cloves"→"clove"): fjern afsluttende 'r', 'er', 'e' eller 's' og slå op igen.
         foreach (var suffix in new[] { "r", "er", "e", "s" })
             if (key.EndsWith(suffix) && Table.TryGetValue(key[..^suffix.Length], out var u)) return u;
-        return Unit.Stk;
+        // Ellers: behold brugerens egen enhed som fri tekst (renset til lovlig længde).
+        return Units.Clean(raw);
     }
 }
 

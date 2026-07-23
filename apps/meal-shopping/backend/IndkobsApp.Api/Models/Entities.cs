@@ -112,7 +112,7 @@ public class RecipeIngredient
     public Ingredient Ingredient { get; set; } = null!;
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>Varegruppe/skabelon der ikke er en ret (fx Frokost, Toilet, Rengøring).</summary>
@@ -135,7 +135,7 @@ public class ItemGroupIngredient
     public Ingredient Ingredient { get; set; } = null!;
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>En planlagt uge (år + ugenummer, unikt).</summary>
@@ -200,7 +200,7 @@ public class WeekManualItem
     public string? FreeText { get; set; }
 
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>
@@ -262,7 +262,7 @@ public class CatalogRecipeIngredient
 
     public string Name { get; set; } = string.Empty; // ingrediens-navn (mappes ved adoption)
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
 }
 
 /// <summary>
@@ -362,7 +362,7 @@ public class OrderLine
 
     public string Name { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
+    public string Unit { get; set; } = Units.Default;
     public string? CategoryName { get; set; } // så butikken kan pakke i rækkefølge
     public bool IsPacked { get; set; }
     public bool NotAvailable { get; set; }
