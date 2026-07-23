@@ -15,10 +15,12 @@ public class RecipesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IngredientService _ingredients;
-    public RecipesController(AppDbContext db, IngredientService ingredients)
+    private readonly IRecipeScanner _scanner;
+    public RecipesController(AppDbContext db, IngredientService ingredients, IRecipeScanner scanner)
     {
         _db = db;
         _ingredients = ingredients;
+        _scanner = scanner;
     }
 
     [HttpGet]
@@ -254,5 +256,45 @@ public class RecipesController : ControllerBase
         recipe.ImageContentType = null;
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // ---------- AI-scanning af opskrift-billede (valgfri; kræver Gemini-nøgle) ----------
+
+    /// <summary>
+    /// Fortæller frontend om scanning er tilgængelig, så "Scan opskrift"-knappen kan skjules
+    /// når featuren er i dvale (ingen Gemini-nøgle). Kræver login som resten af controlleren.
+    /// </summary>
+    [HttpGet("scan/enabled")]
+    public ActionResult<ScanEnabledDto> ScanEnabled() => new ScanEnabledDto(_scanner.Enabled);
+
+    /// <summary>
+    /// Læser en opskrift ud af et foto (multipart-felt "file") og returnerer et
+    /// RecipeUpsert-lignende DTO til gennemsyn i editoren. GEMMER INTET — brugeren
+    /// retter og gemmer selv via de eksisterende opret/gem-endpoints.
+    /// Svarer 503 hvis scanning ikke er konfigureret (dvale uden nøgle).
+    /// </summary>
+    [HttpPost("scan")]
+    [RequestSizeLimit(8 * 1024 * 1024)] // 8 MB rå-upload; komprimeres ned før afsendelse (som billede-upload)
+    public async Task<ActionResult<RecipeUpsertDto>> Scan(IFormFile? file)
+    {
+        if (!_scanner.Enabled)
+            return StatusCode(503, new { message = "AI-scanning er ikke aktiveret." });
+        if (file == null || file.Length == 0) return BadRequest("Ingen fil modtaget.");
+
+        // Genbrug billed-behandlingen: normalisér orientering, nedskalér og re-encode som JPEG.
+        await using var stream = file.OpenReadStream();
+        var processed = await ImageService.ProcessAsync(stream);
+        if (processed == null) return BadRequest("Filen kunne ikke læses som et billede.");
+
+        try
+        {
+            var scanned = await _scanner.ScanAsync(processed.Value.Bytes, processed.Value.ContentType);
+            return RecipeScanMapper.ToUpsert(scanned);
+        }
+        catch (Exception)
+        {
+            // Netværks-/model-/parsefejl: giv en pæn fejl (detaljer logges i scanneren).
+            return StatusCode(502, new { message = "Kunne ikke læse opskriften fra billedet. Prøv igen eller et andet foto." });
+        }
     }
 }
