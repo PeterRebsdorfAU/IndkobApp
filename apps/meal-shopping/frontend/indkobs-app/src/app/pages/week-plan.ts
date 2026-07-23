@@ -237,13 +237,12 @@ export class WeekPlanPage implements OnInit {
     this.api.removeWeekRecipe(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
   }
 
-  // "Lavet": trækker rettens ingredienser (skaleret) fra køkkenlageret.
+  // "Lavet": markerer retten som lavet i ugen (historik).
   markCooked(weekRecipeId: number) {
-    if (!confirm('Markér som lavet? Ingredienserne trækkes fra køkkenlageret.')) return;
     this.api.markCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
   }
   unmarkCooked(weekRecipeId: number) {
-    if (!confirm('Fortryd "lavet"-markeringen? (Lageret føres ikke tilbage automatisk.)')) return;
+    if (!confirm('Fortryd "lavet"-markeringen?')) return;
     this.api.unmarkCooked(this.wid(), weekRecipeId).subscribe(d => this.detail.set(d));
   }
 

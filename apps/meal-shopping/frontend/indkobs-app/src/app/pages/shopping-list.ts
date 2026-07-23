@@ -74,21 +74,6 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
         </aside>
 
         <div class="sl-main">
-          @if (checkedCount() > 0) {
-            <div class="card">
-              <div class="spread">
-                <div class="grow">
-                  <b>Færdig med at handle?</b>
-                  <div class="muted">Læg de {{ checkedCount() }} afkrydsede varer på køkkenlageret med ét tryk.</div>
-                </div>
-                <button class="primary small" (click)="stock()" [disabled]="stocking()">
-                  {{ stocking() ? '…' : '🥫 Læg på lager' }}
-                </button>
-              </div>
-              @if (stockMsg()) { <div class="muted" style="margin-top:.4rem">{{ stockMsg() }}</div> }
-            </div>
-          }
-
           @for (g of l.groups; track g.categoryName) {
             <div class="card">
               <h3>{{ g.categoryName }}</h3>
@@ -96,13 +81,9 @@ import { ShoppingList, ShoppingLine, Ingredient, Unit, UNITS, unitLabel, Store, 
                 <label class="list-item" style="cursor:pointer">
                   <input type="checkbox" class="check" [checked]="line.isChecked"
                          (change)="toggle(line)" />
-                  <span class="grow" [class.checked]="line.isChecked || line.quantity === 0">
+                  <span class="grow" [class.checked]="line.isChecked">
                     {{ line.name }} — {{ qty(line.quantity) }} {{ label(line.unit) }}
                     @if (line.isManual) { <span class="badge">løs</span> }
-                    @if (line.quantity === 0) { <span class="badge">dækket af lager</span> }
-                    @else if (line.onHandQuantity != null) {
-                      <span class="badge">har {{ qty(line.onHandQuantity) }} {{ label(line.onHandUnit!) }} hjemme</span>
-                    }
                   </span>
                   <span class="muted" style="font-size:.72rem">{{ line.sources.join(', ') }}</span>
                 </label>
@@ -161,8 +142,6 @@ export class ShoppingListPage implements OnInit, OnDestroy {
   unit: Unit = 'Stk';
   shareUrl = signal('');
   shareCopied = signal(false);
-  stocking = signal(false);
-  stockMsg = signal('');
 
   // Ordrer (send til butik)
   stores = signal<Store[]>([]);
@@ -246,25 +225,6 @@ export class ShoppingListPage implements OnInit, OnDestroy {
     if (!id || !this.text.trim()) return;
     this.api.addWeekManualItem(id, { freeText: this.text.trim(), quantity: Number(this.qtyInput) || 1, unit: this.unit })
       .subscribe(() => { this.text = ''; this.qtyInput = 1; this.load(); });
-  }
-
-  // Læg alle afkrydsede (købte) varer på køkkenlageret. Naturligt idempotent:
-  // efter første tryk dækker lageret varerne, så endnu et tryk tilføjer intet.
-  stock() {
-    const id = this.state.selectedWeekId();
-    if (!id) return;
-    if (!confirm('Læg alle afkrydsede varer på køkkenlageret?')) return;
-    this.stocking.set(true);
-    this.api.stockChecked(id).subscribe({
-      next: r => {
-        this.stocking.set(false);
-        this.stockMsg.set(r.linesStocked > 0
-          ? `✅ ${r.linesStocked} varer lagt på lageret. Listen viser nu at de er dækket.`
-          : 'Intet at lægge på lager (varerne er allerede dækket).');
-        this.load(); // genindlæs: linjerne bliver "dækket af lager"
-      },
-      error: () => { this.stocking.set(false); this.stockMsg.set('Kunne ikke lægge på lager.'); }
-    });
   }
 
   // Opret delings-link (uden login) og vis det, så det kan sendes til den der handler.

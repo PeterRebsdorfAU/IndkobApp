@@ -25,7 +25,6 @@ public static class HouseholdEraser
         db.Recipes.RemoveRange(db.Recipes.Where(r => r.HouseholdId == householdId));
         db.ItemGroups.RemoveRange(db.ItemGroups.Where(g => g.HouseholdId == householdId));
         db.Weeks.RemoveRange(db.Weeks.Where(w => w.HouseholdId == householdId));
-        db.PantryItems.RemoveRange(db.PantryItems.Where(p => p.HouseholdId == householdId));
         db.HouseholdTasks.RemoveRange(db.HouseholdTasks.Where(t => t.HouseholdId == householdId));
         await db.SaveChangesAsync();
 

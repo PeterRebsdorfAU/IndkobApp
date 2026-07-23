@@ -12,7 +12,7 @@ interface Step {
 
 /**
  * Første-gangs-onboarding: en kort, guidet gennemgang af flowet
- * madplan → indkøbsliste → lager → ordrer. Vises kun første gang
+ * madplan → indkøbsliste → ordrer. Vises kun første gang
  * (styret via localStorage i shared/onboarding-state.ts og app.ts).
  * Kan altid ses igen fra FAQ/hjælp-siden.
  */
@@ -103,14 +103,8 @@ export class OnboardingPage {
             'butikkens rækkefølge. Kryds af mens I handler.'
     },
     {
-      icon: '🥫',
-      title: '3. Hold styr på lageret',
-      body: 'Skriv hvad I har hjemme på Lager-fanen. Så trækker indkøbslisten det fra, ' +
-            'og I køber kun det, der mangler.'
-    },
-    {
       icon: '📦',
-      title: '4. Send til butik',
+      title: '3. Send til butik',
       body: 'Er din butik med? Send hele indkøbslisten som en ordre og følg status ' +
             'fra Modtaget til Afhentet. Ellers handler I bare selv efter listen.'
     }

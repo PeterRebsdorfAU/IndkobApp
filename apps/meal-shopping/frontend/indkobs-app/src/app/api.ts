@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
-  CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult,
+  CatalogRecipe, AdoptResult, ShareToken,
   HouseholdTask, TasksSummary, Store, Order, InviteResult
 } from './models';
 import { environment } from '../environments/environment';
@@ -84,9 +84,6 @@ export class Api {
   setCheck(weekId: number, lineKey: string, isChecked: boolean) {
     return this.http.put(`${API}/weeks/${weekId}/shopping-list/check`, { lineKey, isChecked });
   }
-  stockChecked(weekId: number) {
-    return this.http.post<StockCheckedResult>(`${API}/weeks/${weekId}/shopping-list/stock-checked`, {});
-  }
 
   // ----- Inspiration / katalog -----
   getCatalog(): Observable<CatalogRecipe[]> { return this.http.get<CatalogRecipe[]>(`${API}/catalog/recipes`); }
@@ -95,16 +92,6 @@ export class Api {
   }
   publishRecipe(id: number) { return this.http.post(`${API}/recipes/${id}/publish`, {}); }
   unpublishRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}/publish`); }
-
-  // ----- Køkkenlager -----
-  getPantry(): Observable<PantryItem[]> { return this.http.get<PantryItem[]>(`${API}/pantry`); }
-  addPantryItem(body: { ingredientId?: number | null; ingredientName?: string | null; quantity: number; unit: Unit }) {
-    return this.http.post<PantryItem>(`${API}/pantry`, body);
-  }
-  updatePantryItem(id: number, body: { quantity: number; unit: Unit }) {
-    return this.http.put(`${API}/pantry/${id}`, body);
-  }
-  deletePantryItem(id: number) { return this.http.delete(`${API}/pantry/${id}`); }
 
   // ----- Deling af indkøbsliste -----
   createShare(weekId: number) { return this.http.post<ShareToken>(`${API}/weeks/${weekId}/share`, {}); }

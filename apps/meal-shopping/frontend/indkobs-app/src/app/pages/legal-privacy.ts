@@ -30,7 +30,7 @@ import { Auth } from '../auth';
       <ul>
         <li><strong>Kontooplysninger:</strong> husstandsnavn og brugernavn (login) samt en krypteret (hashet) adgangskode.</li>
         <li><strong>Indhold du selv opretter:</strong> opskrifter, varegrupper, ugeplaner, indkøbslister,
-          køkkenlager, opgaver og evt. ordrer.</li>
+          opgaver og evt. ordrer.</li>
         <li><strong>Tekniske data:</strong> nødvendige server-logs (fx tidspunkt og fejl) til drift og sikkerhed.</li>
       </ul>
       <p>Vi indsamler <strong>ikke</strong> særlige kategorier af følsomme oplysninger, og vi sælger ikke data.</p>
@@ -89,7 +89,7 @@ import { Auth } from '../auth';
           <h3>Slet min husstand</h3>
           <p class="muted">
             Sletter husstandskontoen og <strong>alt</strong> tilhørende data permanent — opskrifter, uger,
-            lister, lager, opgaver og ordrer. Handlingen kan <strong>ikke</strong> fortrydes.
+            lister, opgaver og ordrer. Handlingen kan <strong>ikke</strong> fortrydes.
           </p>
           @if (!confirming()) {
             <button class="danger-btn" (click)="confirming.set(true)">Slet min husstand…</button>

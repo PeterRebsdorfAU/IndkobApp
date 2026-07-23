@@ -22,7 +22,6 @@ public class AppDbContext : DbContext
     public DbSet<ShoppingListCheck> ShoppingListChecks => Set<ShoppingListCheck>();
     public DbSet<CatalogRecipe> CatalogRecipes => Set<CatalogRecipe>();
     public DbSet<CatalogRecipeIngredient> CatalogRecipeIngredients => Set<CatalogRecipeIngredient>();
-    public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<WeekShareToken> WeekShareTokens => Set<WeekShareToken>();
     public DbSet<HouseholdTask> HouseholdTasks => Set<HouseholdTask>();
     public DbSet<Order> Orders => Set<Order>();
@@ -196,18 +195,6 @@ public class AppDbContext : DbContext
                 .WithMany(r => r.Ingredients)
                 .HasForeignKey(x => x.CatalogRecipeId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        b.Entity<PantryItem>(e =>
-        {
-            e.Property(x => x.Quantity).HasPrecision(10, 3);
-            e.Property(x => x.Unit).HasConversion(unitConverter).HasMaxLength(20);
-            e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Ingredient)
-                .WithMany()
-                .HasForeignKey(x => x.IngredientId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(x => x.HouseholdId);
         });
 
         b.Entity<WeekShareToken>(e =>

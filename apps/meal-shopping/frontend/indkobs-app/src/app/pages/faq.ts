@@ -27,7 +27,6 @@ interface Qa { q: string; a: string; }
       <ol class="steps">
         <li><b>Planlæg ugen.</b> På <a routerLink="/uge">Uge</a> vælger I dagens retter og varegrupper.</li>
         <li><b>Få indkøbslisten.</b> <a routerLink="/indkob">Indkøb</a> samler alt, omregner enheder og sorterer efter butik.</li>
-        <li><b>Hold styr på lageret.</b> Skriv hvad I har hjemme på <a routerLink="/lager">Lager</a> — så køber I kun det, der mangler.</li>
         <li><b>Send til butik (valgfrit).</b> Send listen som en ordre fra indkøbssiden og følg status.</li>
       </ol>
       <button class="small" (click)="replayIntro()">▶︎ Se introduktionen igen</button>
@@ -86,11 +85,6 @@ export class FaqPage {
          'listen bygges automatisk ud fra ugens plan.'
     },
     {
-      q: 'Hvorfor står nogle varer ikke på min indkøbsliste?',
-      a: 'Indkøbslisten trækker jeres køkkenlager fra. Har I fx 500 g mel hjemme, og opskriften ' +
-         'kræver 300 g, ryger melet ikke på listen. Ret beholdningen på Lager-fanen.'
-    },
-    {
       q: 'Hvordan lægger appen ens varer sammen?',
       a: 'Samme vare summeres, og enheder omregnes hvor det giver mening (g↔kg, ml↔l). ' +
          'Varer i enheder der ikke kan omregnes (fx stk og pakke) vises på hver sin linje.'
@@ -113,7 +107,7 @@ export class FaqPage {
     {
       q: 'Forsvinder mine gamle uger?',
       a: 'Uger ældre end 5 uger ryddes automatisk væk for at holde det overskueligt. ' +
-         'Jeres retter, varegrupper og lager røres ikke.'
+         'Jeres retter og varegrupper røres ikke.'
     },
     {
       q: 'Virker appen offline?',

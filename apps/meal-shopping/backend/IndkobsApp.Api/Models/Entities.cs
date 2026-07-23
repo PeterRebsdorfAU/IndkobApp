@@ -160,8 +160,8 @@ public class WeekRecipe
     public int? DayOfWeek { get; set; }
 
     /// <summary>
-    /// Sat når retten er markeret "lavet" — ingredienserne blev da trukket fra
-    /// køkkenlageret. Null = ikke lavet endnu.
+    /// Sat når retten er markeret "lavet" — en simpel historik-markering af, at
+    /// husstanden har lavet retten i ugen. Null = ikke lavet endnu.
     /// </summary>
     public DateTime? CookedUtc { get; set; }
 }
@@ -244,22 +244,6 @@ public class CatalogRecipeIngredient
     public CatalogRecipe CatalogRecipe { get; set; } = null!;
 
     public string Name { get; set; } = string.Empty; // ingrediens-navn (mappes ved adoption)
-    public decimal Quantity { get; set; }
-    public Unit Unit { get; set; }
-}
-
-/// <summary>
-/// En vare husstanden har hjemme (køkkenlager). Bruges til at trække "haves"
-/// fra indkøbslisten, så man kun køber det man mangler.
-/// </summary>
-public class PantryItem
-{
-    public int Id { get; set; }
-    public int HouseholdId { get; set; }
-
-    public int IngredientId { get; set; }
-    public Ingredient Ingredient { get; set; } = null!;
-
     public decimal Quantity { get; set; }
     public Unit Unit { get; set; }
 }

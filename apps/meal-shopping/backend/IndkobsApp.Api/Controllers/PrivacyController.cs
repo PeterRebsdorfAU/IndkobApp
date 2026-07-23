@@ -97,16 +97,6 @@ public class PrivacyController : ControllerBase
                 w.Checks.Select(c => new ExportWeekCheckDto(c.LineKey, c.IsChecked)).ToList()))
             .ToList();
 
-        var pantry = (await _db.PantryItems
-            .Where(p => p.HouseholdId == hid)
-            .Include(p => p.Ingredient).ThenInclude(i => i.Category)
-            .ToListAsync())
-            .Select(p => new ExportPantryItemDto(
-                p.Ingredient.Name, p.Ingredient.Category != null ? p.Ingredient.Category.Name : null,
-                p.Quantity, p.Unit.ToString()))
-            .OrderBy(p => p.Ingredient)
-            .ToList();
-
         // Materialisér før projektion: .ToString("o") på DateOnly/DateTime kan ikke
         // oversættes til SQL af EF Core, så det skal ske i hukommelsen.
         var tasks = (await _db.HouseholdTasks
@@ -141,7 +131,7 @@ public class PrivacyController : ControllerBase
         var export = new DataExportDto(
             DateTime.UtcNow.ToString("o"),
             new ExportHouseholdDto(household.Id, household.Name, household.Email, household.CreatedUtc.ToString("o")),
-            categories, ingredients, recipes, itemGroups, weeks, pantry, tasks, orders, published);
+            categories, ingredients, recipes, itemGroups, weeks, tasks, orders, published);
 
         // Foreslå et filnavn til download (frontend gemmer selv som fil via HttpClient).
         var fileName = $"mine-data-{household.Id}-{DateTime.UtcNow:yyyy-MM-dd}.json";
