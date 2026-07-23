@@ -3,6 +3,11 @@ import { authGuard } from './auth-guard';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login').then(m => m.LoginPage) },
+  // Selvbetjent brugerkonti (T2) — bevidst UDEN auth-guard (tilgås før login).
+  { path: 'opret', loadComponent: () => import('./pages/signup').then(m => m.SignupPage) },
+  { path: 'glemt-kode', loadComponent: () => import('./pages/forgot-password').then(m => m.ForgotPasswordPage) },
+  { path: 'nulstil-kode', loadComponent: () => import('./pages/reset-password').then(m => m.ResetPasswordPage) },
+  { path: 'bekraeft-email', loadComponent: () => import('./pages/confirm-email').then(m => m.ConfirmEmailPage) },
   // Offentlig delt indkøbsliste (via token-link) — bevidst UDEN auth-guard.
   { path: 'del/:token', loadComponent: () => import('./pages/shared-list').then(m => m.SharedListPage) },
   // Juridiske sider — bevidst UDEN auth-guard, så de kan tilgås før login/signup.

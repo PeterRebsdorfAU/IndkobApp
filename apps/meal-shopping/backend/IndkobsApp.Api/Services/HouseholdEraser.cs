@@ -21,6 +21,7 @@ public static class HouseholdEraser
         // Slet først alt der refererer ingredienser (FK = Restrict), så husstandens
         // varebank/kategorier, og til sidst selve husstanden. Øvrige relationer
         // (uge-indhold, checks, delings-tokens, katalog-snapshots, ordrer) kaskaderer.
+        db.Users.RemoveRange(db.Users.Where(u => u.HouseholdId == householdId));
         db.Recipes.RemoveRange(db.Recipes.Where(r => r.HouseholdId == householdId));
         db.ItemGroups.RemoveRange(db.ItemGroups.Where(g => g.HouseholdId == householdId));
         db.Weeks.RemoveRange(db.Weeks.Where(w => w.HouseholdId == householdId));

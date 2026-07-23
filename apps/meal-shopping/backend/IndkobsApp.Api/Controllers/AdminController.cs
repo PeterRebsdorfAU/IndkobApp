@@ -65,6 +65,17 @@ public class AdminController : ControllerBase
 
         // Ny husstand starter med sit eget standard-kategorisæt (kategorier er private).
         DbSeeder.SeedDefaultCategories(_db, household.Id);
+
+        // T2: opret også en første individuel bruger, så login går via bruger-stien.
+        // Identity-hashformatet er ens for Household/User, så hash'en kan genbruges direkte.
+        _db.Users.Add(new User
+        {
+            HouseholdId = household.Id,
+            Email = email,
+            PasswordHash = household.PasswordHash,
+            DisplayName = household.Name,
+            EmailConfirmed = true
+        });
         await _db.SaveChangesAsync();
 
         return Ok(new HouseholdDto(household.Id, household.Name, household.Email));

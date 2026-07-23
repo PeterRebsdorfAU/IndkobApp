@@ -17,6 +17,36 @@ public class Household
 }
 
 /// <summary>
+/// En individuel bruger der tilhører en husstand (T2 "individuelle brugerkonti").
+/// Flere brugere kan dele samme husstand (fx par/familie): de ser samme data, men
+/// logger ind hver for sig med egen email + adgangskode. Ved migrering oprettes én
+/// bruger pr. eksisterende husstand ud fra husstandens hidtidige login, så intet
+/// eksisterende login går i stykker (se migration <c>AddUsers</c>).
+/// </summary>
+public class User
+{
+    public int Id { get; set; }
+
+    /// <summary>Husstanden brugeren tilhører (data er husstands-scopet, ikke bruger-scopet).</summary>
+    public int HouseholdId { get; set; }
+    public Household Household { get; set; } = null!;
+
+    /// <summary>Login-email (unik på tværs af alle brugere; gemmes normaliseret lowercase).</summary>
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary>Vist navn (fx fornavn). Bruges til personalisering i UI.</summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Sat når brugeren har bekræftet sin email via bekræftelseslinket.</summary>
+    public bool EmailConfirmed { get; set; }
+
+    public static string NormalizeEmail(string email) => Household.NormalizeEmail(email);
+}
+
+/// <summary>
 /// Butikskategori brugt til at gruppere/sortere indkøbslisten.
 /// PRIVAT pr. husstand — hver husstand har sin egen butiksrækkefølge.
 /// </summary>

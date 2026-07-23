@@ -5,7 +5,11 @@
       <span class="brand-name">Madplan</span>
     </span>
     <span class="grow"></span>
-    @if (auth.householdName()) { <span class="household">{{ auth.householdName() }}</span> }
+    @if (auth.displayName()) {
+      <span class="household">{{ auth.displayName() }}</span>
+    } @else if (auth.householdName()) {
+      <span class="household">{{ auth.householdName() }}</span>
+    }
     <a routerLink="/hjaelp" class="help-link" title="Hjælp &amp; FAQ" aria-label="Hjælp og FAQ">?</a>
     <button class="ghost small" (click)="auth.logout()" aria-label="Log ud">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
