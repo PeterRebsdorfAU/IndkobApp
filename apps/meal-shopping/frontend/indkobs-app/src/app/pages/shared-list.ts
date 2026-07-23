@@ -12,16 +12,17 @@ import { LogoMark } from '../shared/logo';
   selector: 'page-shared-list',
   imports: [LogoMark],
   template: `
-    <div class="shared-brand">
-      <app-logo [size]="30" />
-      <h1>Indkøbsliste</h1>
+    <div class="hero">
+      <span class="eyebrow" style="align-items:center">
+        <app-logo [size]="20" /> Madplan
+      </span>
+      <div class="hero-title" style="font-size:1.8rem">Indkøbsliste</div>
+      @if (list(); as l) {
+        <div class="hero-sub">Uge {{ l.weekNumber }}, {{ l.year }} · delt med dig · {{ checkedCount() }}/{{ totalCount() }} købt</div>
+      }
     </div>
 
     @if (list(); as l) {
-      <div class="spread">
-        <div class="muted">Uge {{ l.weekNumber }}, {{ l.year }} (delt med dig)</div>
-        <div class="badge">{{ checkedCount() }} / {{ totalCount() }} købt</div>
-      </div>
 
       @for (g of l.groups; track g.categoryName) {
         <div class="card">
@@ -45,8 +46,7 @@ import { LogoMark } from '../shared/logo';
     }
   `,
   styles: [`
-    .shared-brand { display: flex; align-items: center; gap: .55rem; margin-bottom: .9rem; }
-    .shared-brand h1 { margin: 0; }
+    :host .hero .eyebrow app-logo { line-height: 0; }
   `]
 })
 export class SharedListPage implements OnInit {

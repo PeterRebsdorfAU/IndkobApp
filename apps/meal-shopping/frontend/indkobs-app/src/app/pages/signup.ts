@@ -16,68 +16,61 @@ import { ConsentCheckbox } from '../shared/consent-checkbox';
   imports: [FormsModule, RouterLink, LogoMark, ConsentCheckbox],
   template: `
     <div class="login-wrap">
-      <div class="card login-card">
-        <div class="login-brand">
-          <app-logo [size]="52" />
+      <div class="login-card">
+        <div class="login-hero">
+          <span class="logo-chip"><app-logo [size]="44" /></span>
           <h1>{{ inviteToken() ? 'Tilslut husstand' : 'Opret konto' }}</h1>
-          <p class="muted">
+          <p>
             {{ inviteToken()
               ? 'Du er inviteret til en eksisterende husstand. Opret din egen bruger her.'
               : 'Opret en ny husstand og din personlige bruger.' }}
           </p>
         </div>
 
-        <form (ngSubmit)="submit()">
-          <div class="field">
-            <label>Dit navn</label>
-            <input type="text" autocomplete="name" [(ngModel)]="displayName" name="displayName"
-                   placeholder="fx Clara" />
-          </div>
-
-          @if (!inviteToken()) {
+        <div class="login-body">
+          <form (ngSubmit)="submit()">
             <div class="field">
-              <label>Husstandens navn</label>
-              <input type="text" [(ngModel)]="householdName" name="householdName"
-                     placeholder="fx Familien Hansen" />
+              <label>Dit navn</label>
+              <input type="text" autocomplete="name" [(ngModel)]="displayName" name="displayName"
+                     placeholder="fx Clara" />
             </div>
-          }
 
-          <div class="field">
-            <label>Email</label>
-            <input type="email" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
-                   placeholder="dig@eksempel.dk" />
+            @if (!inviteToken()) {
+              <div class="field">
+                <label>Husstandens navn</label>
+                <input type="text" [(ngModel)]="householdName" name="householdName"
+                       placeholder="fx Familien Hansen" />
+              </div>
+            }
+
+            <div class="field">
+              <label>Email</label>
+              <input type="email" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
+                     placeholder="dig@eksempel.dk" />
+            </div>
+            <div class="field">
+              <label>Adgangskode</label>
+              <input type="password" autocomplete="new-password" [(ngModel)]="password" name="password"
+                     placeholder="Mindst 8 tegn" />
+            </div>
+
+            <consent-checkbox [(accepted)]="consent" />
+
+            @if (error()) { <div class="error">{{ error() }}</div> }
+
+            <button class="primary" type="submit" [disabled]="loading() || !consent()" style="width:100%; margin-top:.3rem">
+              {{ loading() ? 'Opretter…' : 'Opret konto' }}
+            </button>
+          </form>
+
+          <div class="login-links">
+            <span class="muted">Har du allerede en konto?</span>
+            <a routerLink="/login">Log ind</a>
           </div>
-          <div class="field">
-            <label>Adgangskode</label>
-            <input type="password" autocomplete="new-password" [(ngModel)]="password" name="password"
-                   placeholder="Mindst 8 tegn" />
-          </div>
-
-          <consent-checkbox [(accepted)]="consent" />
-
-          @if (error()) { <div class="error">{{ error() }}</div> }
-
-          <button class="primary" type="submit" [disabled]="loading() || !consent()" style="width:100%">
-            {{ loading() ? 'Opretter…' : 'Opret konto' }}
-          </button>
-        </form>
-
-        <div class="login-links">
-          <span class="muted">Har du allerede en konto?</span>
-          <a routerLink="/login">Log ind</a>
         </div>
       </div>
     </div>
-  `,
-  styles: [`
-    .login-wrap { min-height: 82vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0; }
-    .login-card { width: 100%; max-width: 400px; padding: 1.6rem 1.4rem; box-shadow: var(--shadow-md); }
-    .login-brand { text-align: center; margin-bottom: 1.3rem; }
-    .login-brand app-logo { margin-bottom: .7rem; }
-    .login-brand h1 { font-size: 1.35rem; margin: 0 0 .2rem; }
-    .login-brand p { margin: 0; }
-    .login-links { margin-top: 1.1rem; text-align: center; font-size: .9rem; display: flex; gap: .6rem; justify-content: center; align-items: center; flex-wrap: wrap; }
-  `]
+  `
 })
 export class SignupPage {
   private auth = inject(Auth);

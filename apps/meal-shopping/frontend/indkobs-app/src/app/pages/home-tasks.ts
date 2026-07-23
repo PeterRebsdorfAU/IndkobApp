@@ -12,8 +12,11 @@ import { HouseholdTask } from '../models';
   selector: 'page-home-tasks',
   imports: [FormsModule],
   template: `
-    <h1>Hjem</h1>
-    <p class="muted">Husstandens opgaver og pligter — fælles, ligesom indkøbslisten.</p>
+    <div class="hero">
+      <span class="eyebrow">Hjem</span>
+      <div class="hero-title">Husstandens opgaver</div>
+      <div class="hero-sub">To-dos og gentagne pligter — fælles, ligesom indkøbslisten.</div>
+    </div>
 
     <!-- Opret -->
     <div class="card">
@@ -52,7 +55,7 @@ import { HouseholdTask } from '../models';
 
     <!-- Forfaldne pligter -->
     @if (overdue().length > 0) {
-      <div class="card" style="border-color:var(--danger)">
+      <div class="card" style="border-color:var(--coral)">
         <h3>Forfaldne</h3>
         @for (t of overdue(); track t.id) {
           <div class="list-item">
@@ -78,7 +81,7 @@ import { HouseholdTask } from '../models';
           <span class="grow">{{ t.title }}</span>
           <button class="danger" (click)="remove(t); $event.preventDefault()">✕</button>
         </label>
-      } @empty { <div class="muted">Ingen åbne opgaver. 🎉</div> }
+      } @empty { <div class="muted">Ingen åbne opgaver.</div> }
 
       @if (doneTodos().length > 0) {
         <div class="muted" style="margin-top:.6rem">Færdige:</div>
