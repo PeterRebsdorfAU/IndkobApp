@@ -52,7 +52,7 @@ import { EmptyState } from '../shared/empty-state';
           <input [(ngModel)]="form.name" placeholder="Fx Frokost" />
         </div>
 
-        <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" />
+        <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" [unitSuggestions]="units()" />
 
         @if (error()) { <div class="error">{{ error() }}</div> }
         <div class="row" style="margin-top:.8rem">
@@ -67,16 +67,18 @@ export class ItemGroupsPage implements OnInit {
   private api = inject(Api);
   groups = signal<ItemGroup[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  units = signal<string[]>([]);
   editing = signal<(ItemGroupUpsert & { id: number | null }) | null>(null);
   error = signal('');
   saving = signal(false);
 
   label = unitLabel;
 
-  ngOnInit() { this.load(); this.loadIngredients(); }
+  ngOnInit() { this.load(); this.loadIngredients(); this.loadUnits(); }
 
   load() { this.api.getItemGroups().subscribe(g => this.groups.set(g)); }
   loadIngredients() { this.api.getIngredients().subscribe(i => this.ingredients.set(i)); }
+  loadUnits() { this.api.getUnits().subscribe(u => this.units.set(u)); }
 
   startNew() { this.error.set(''); this.editing.set({ id: null, name: '', ingredients: [] }); }
 

@@ -11,8 +11,8 @@ public record IngredientUpsertDto(string Name, int? CategoryId);
 
 // En ingredienslinje som klienten sender (bruges af både retter og varegrupper).
 // IngredientName matches/oprettes normaliseret; IngredientId er valgfri genvej.
-public record IngredientLineInputDto(int? IngredientId, string IngredientName, decimal Quantity, Unit Unit);
-public record IngredientLineDto(int Id, int IngredientId, string IngredientName, string? CategoryName, decimal Quantity, Unit Unit);
+public record IngredientLineInputDto(int? IngredientId, string IngredientName, decimal Quantity, string Unit);
+public record IngredientLineDto(int Id, int IngredientId, string IngredientName, string? CategoryName, decimal Quantity, string Unit);
 
 // ---------- Retter ----------
 // IsPublic = opskriften er publiceret til den fælles inspirationsside.
@@ -34,7 +34,7 @@ public record WeekCreateDto(int Year, int WeekNumber);
 // CookedUtc sat = retten er markeret "lavet" (ingredienser trukket fra lageret).
 public record WeekRecipeDto(int Id, int RecipeId, string RecipeName, int BaseServings, int? Servings, int? DayOfWeek, DateTime? CookedUtc = null);
 public record WeekItemGroupDto(int Id, int ItemGroupId, string ItemGroupName);
-public record WeekManualItemDto(int Id, int? IngredientId, string Name, decimal Quantity, Unit Unit);
+public record WeekManualItemDto(int Id, int? IngredientId, string Name, decimal Quantity, string Unit);
 
 public record WeekDetailDto(
     int Id, int Year, int WeekNumber,
@@ -45,7 +45,7 @@ public record WeekDetailDto(
 public record AddWeekRecipeDto(int RecipeId, int? Servings, int? DayOfWeek);
 public record UpdateWeekRecipeDto(int? Servings, int? DayOfWeek);
 public record AddWeekItemGroupDto(int ItemGroupId);
-public record AddWeekManualItemDto(int? IngredientId, string? FreeText, decimal Quantity, Unit Unit);
+public record AddWeekManualItemDto(int? IngredientId, string? FreeText, decimal Quantity, string Unit);
 
 // ---------- Indkøbsliste ----------
 // Quantity = det fulde behov for varen (aggregeret på tværs af ugens retter/varegrupper/løse varer).
@@ -54,7 +54,7 @@ public record ShoppingLineDto(
     int? IngredientId,
     string Name,
     decimal Quantity,
-    Unit Unit,
+    string Unit,
     bool IsChecked,
     bool IsManual,
     List<string> Sources);
@@ -89,7 +89,7 @@ public record ConfirmEmailDto(string Token);
 public record InviteResultDto(string InviteToken, string InviteLink);
 
 // ---------- Inspiration / katalog ----------
-public record CatalogLineDto(string Name, decimal Quantity, Unit Unit);
+public record CatalogLineDto(string Name, decimal Quantity, string Unit);
 // SharedBy = navnet på husstanden der har delt opskriften (null for kuraterede).
 // Method = valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.
 // HasImage = katalog-opskriften har et billede (hentes via GET /api/catalog/recipes/{id}/image).
@@ -114,7 +114,7 @@ public record SharedRecipeDto(
 
 // ---------- Ordrer (butiks-flow) ----------
 public record StoreDto(string Name);
-public record OrderLineDto(int Id, string Name, decimal Quantity, Unit Unit, string? CategoryName, bool IsPacked, bool NotAvailable);
+public record OrderLineDto(int Id, string Name, decimal Quantity, string Unit, string? CategoryName, bool IsPacked, bool NotAvailable);
 public record OrderDto(int Id, string HouseholdName, string StoreName, string Status, string? Note,
     string CreatedUtc, string? ReadyUtc, List<OrderLineDto> Lines);
 public record CreateOrderDto(string StoreName, string? Note);

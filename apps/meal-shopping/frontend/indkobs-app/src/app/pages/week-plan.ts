@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { Api, isoWeek } from '../api';
 import { WeekState } from '../shared/week-state';
 import { EmptyState } from '../shared/empty-state';
-import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNITS, DAYS, unitLabel } from '../models';
+import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, BASE_UNITS, mergeUnitSuggestions, DAYS, unitLabel } from '../models';
 
 @Component({
   selector: 'page-week-plan',
@@ -134,13 +134,14 @@ import { Week, WeekDetail, WeekRecipe, Recipe, ItemGroup, Ingredient, Unit, UNIT
         <div class="line-input" style="margin-top:.6rem">
           <input class="full" list="manual-ing" placeholder="Vare (fx Kaffe)" [(ngModel)]="manualText" />
           <input type="number" min="0" step="0.001" placeholder="Antal" [(ngModel)]="manualQty" />
-          <select [(ngModel)]="manualUnit">
-            @for (u of units; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
-          </select>
+          <input list="manual-units" placeholder="Enhed" autocomplete="off" [(ngModel)]="manualUnit" />
           <button class="primary" (click)="addManual()">+</button>
         </div>
         <datalist id="manual-ing">
           @for (i of ingredients(); track i.id) { <option [value]="i.name"></option> }
+        </datalist>
+        <datalist id="manual-units">
+          @for (u of unitOptions(); track u) { <option [value]="u"></option> }
         </datalist>
       </div>
     } @else {
@@ -161,7 +162,8 @@ export class WeekPlanPage implements OnInit {
   selectedId = this.state.selectedWeekId;
 
   days = DAYS;
-  units = UNITS;
+  units = signal<string[]>([]);
+  unitOptions = computed(() => mergeUnitSuggestions(BASE_UNITS, this.units()));
   label = unitLabel;
 
   // Hvilken dag ret-vælgeren er åben for (undefined = lukket; null = "Uden bestemt dag").
@@ -184,12 +186,13 @@ export class WeekPlanPage implements OnInit {
   addGroupId: number | null = null;
   manualText = '';
   manualQty = 1;
-  manualUnit: Unit = 'Stk';
+  manualUnit: Unit = 'stk';
 
   ngOnInit() {
     this.api.getRecipes().subscribe(r => this.recipes.set(r));
     this.api.getItemGroups().subscribe(g => this.groups.set(g));
     this.api.getIngredients().subscribe(i => this.ingredients.set(i));
+    this.api.getUnits().subscribe(u => this.units.set(u));
     this.loadWeeks();
   }
 

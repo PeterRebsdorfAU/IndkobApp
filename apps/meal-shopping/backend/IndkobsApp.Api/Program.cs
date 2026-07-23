@@ -16,7 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Fejllogning & overvågning (T6): Sentry + struktureret request-logging. No-op uden Sentry:Dsn.
 builder.AddObservability();
 
-// JSON: serialisér enums (Unit) som tekst, så frontend ser "G"/"Kg" frem for tal.
+// JSON: serialisér øvrige enums som tekst (fx OrderStatus) frem for tal.
+// Enheder er nu fri tekst (string) og berøres ikke af denne konverter.
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 

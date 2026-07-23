@@ -27,6 +27,10 @@ export class Api {
   updateCategory(id: number, c: { name: string; sortOrder: number }) { return this.http.put(`${API}/categories/${id}`, { id, ...c }); }
   deleteCategory(id: number) { return this.http.delete(`${API}/categories/${id}`); }
 
+  // ----- Enheder (fri tekst) -----
+  // Forslag til enheds-vælgeren: standard-sættet + de enheder husstanden allerede har brugt.
+  getUnits(): Observable<string[]> { return this.http.get<string[]>(`${API}/units`); }
+
   // ----- Ingredienser -----
   getIngredients(): Observable<Ingredient[]> { return this.http.get<Ingredient[]>(`${API}/ingredients`); }
   createIngredient(i: { name: string; categoryId: number | null }) { return this.http.post<Ingredient>(`${API}/ingredients`, i); }

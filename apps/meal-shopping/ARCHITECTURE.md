@@ -46,7 +46,7 @@ Denne app ligger under `apps/meal-shopping/` i repoet `PeterRebsdorfAU/IndkobApp
 ```
 apps/meal-shopping/
 ├─ backend/IndkobsApp.Api/     # .NET API
-│  ├─ Models/                  # entiteter + Unit-enum + UnitMath (enhedsmatematik)
+│  ├─ Models/                  # entiteter + Units (fri-tekst enheder) + UnitMath (enhedsmatematik)
 │  ├─ Data/                    # AppDbContext, DbSeeder, Migrations/
 │  ├─ Dtos/ Services/ Controllers/
 │  └─ Program.cs               # DI, JWT, CORS, auto-migrate + seed
@@ -96,7 +96,13 @@ erDiagram
 - **`WeekRecipe.Servings`** (nullable) overstyrer rettens basis-portioner → skalering. `DayOfWeek` (nullable) = valgfri dag.
 - **`WeekManualItem`** = løs vare (enten koblet til en `Ingredient` eller fritekst).
 - **`ShoppingListCheck`** husker afkrydsning pr. aggregeret linje via en stabil `LineKey` (se §6).
-- **`Unit`** er en enum gemt som tekst i DB (Stk, G, Kg, Ml, L, Spsk, Tsk, Daase, Pakke, Knivspids, Bundt, Fed).
+- **`Unit`** er **fri tekst** (`string`): brugeren kan bruge en hvilken som helst enhed (fx "glas",
+  "kviste"). De omregnelige basisenheder (masse g↔kg, volumen ml↔l) genkendes af `UnitMath` og lægges
+  automatisk sammen; enhver anden enhed er "count" og lægges kun sammen pr. distinkt enhed
+  (case-insensitivt). `Models/Unit.cs` (`Units`) samler de kendte forslag (stk, g, kg, ml, l, spsk, tsk,
+  dåse, pakke, knivspids, bundt, fed). Enheds-vælgeren i frontend er en combobox (`<input list=…>`), og
+  `GET /api/units` foreslår standard-sættet + husstandens tidligere brugte enheder. (Migration
+  `FreeTextUnits` konverterede de gamle enum-navne til fri-tekst skrivemåder — data-bevarende.)
 - **`CatalogRecipe`/`CatalogRecipeIngredient`** = fælles inspirations-katalog (ikke husstands-scoped).
   Ingredienser gemmes som **navne** — mapping til master-`Ingredient` sker først ved adoption.
 - **`WeekShareToken`** = delings-token pr. uge (unikt; giver anonym læse/afkrydsningsadgang).

@@ -24,7 +24,7 @@ public class RecipeAdoptionService
     }
 
     /// <summary>En enkelt ingredienslinje i kilde-opskriften (navn + mængde + enhed).</summary>
-    public readonly record struct AdoptLine(string Name, decimal Quantity, Unit Unit);
+    public readonly record struct AdoptLine(string Name, decimal Quantity, string Unit);
 
     /// <summary>
     /// Adopterer en opskrift ind i <paramref name="householdId"/>'s egne opskrifter og returnerer

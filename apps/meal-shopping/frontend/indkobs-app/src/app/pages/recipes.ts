@@ -170,7 +170,7 @@ import { ToastService } from '../shared/toast';
             </div>
           </div>
 
-          <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" />
+          <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" [unitSuggestions]="units()" />
 
           @if (error()) { <div class="error">{{ error() }}</div> }
           <div class="row" style="margin-top:.8rem">
@@ -278,6 +278,7 @@ export class RecipesPage implements OnInit {
 
   recipes = signal<Recipe[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  units = signal<string[]>([]);
   editing = signal<(RecipeUpsert & { id: number | null }) | null>(null);
   error = signal('');
   saving = signal(false);
@@ -323,6 +324,7 @@ export class RecipesPage implements OnInit {
   ngOnInit() {
     this.load();
     this.loadIngredients();
+    this.loadUnits();
     // Er AI-scanning slået til på serveren? (Skjuler knappen når featuren er i dvale.)
     this.api.scanRecipeEnabled().subscribe({
       next: r => this.scanEnabled.set(r.enabled),
@@ -337,6 +339,7 @@ export class RecipesPage implements OnInit {
 
   load() { this.api.getRecipes().subscribe(r => this.recipes.set(r)); }
   loadIngredients() { this.api.getIngredients().subscribe(i => this.ingredients.set(i)); }
+  loadUnits() { this.api.getUnits().subscribe(u => this.units.set(u)); }
 
   adopt(c: CatalogRecipe) {
     this.adopting.set(c.id);

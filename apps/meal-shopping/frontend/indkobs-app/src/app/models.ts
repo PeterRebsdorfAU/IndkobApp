@@ -1,28 +1,42 @@
 // Domæne-modeller der matcher backendens DTO'er.
 
-// Enhedsnavne SKAL matche C#-enum'en Unit (serialiseres som tekst).
-export type Unit =
-  | 'Stk' | 'G' | 'Kg' | 'Ml' | 'L'
-  | 'Spsk' | 'Tsk' | 'Daase' | 'Pakke' | 'Knivspids' | 'Bundt' | 'Fed';
+// Enheder er FRI TEKST: brugeren kan skrive en hvilken som helst enhed (fx "glas",
+// "kviste", "dåser"). Nedenstående er blot FORSLAG — ikke en lukket liste.
+export type Unit = string;
 
-// Visningslabels (fx "Dåse" i stedet for enum-navnet "Daase").
-export const UNITS: { value: Unit; label: string }[] = [
-  { value: 'Stk', label: 'stk' },
-  { value: 'G', label: 'g' },
-  { value: 'Kg', label: 'kg' },
-  { value: 'Ml', label: 'ml' },
-  { value: 'L', label: 'l' },
-  { value: 'Spsk', label: 'spsk' },
-  { value: 'Tsk', label: 'tsk' },
-  { value: 'Daase', label: 'dåse' },
-  { value: 'Pakke', label: 'pakke' },
-  { value: 'Knivspids', label: 'knivspids' },
-  { value: 'Bundt', label: 'bundt' },
-  { value: 'Fed', label: 'fed' },
+// Standard-forslag (matcher backendens Units.Suggestions — små, menneskevenlige skrivemåder).
+export const BASE_UNITS: string[] = [
+  'stk', 'g', 'kg', 'ml', 'l', 'spsk', 'tsk', 'dåse', 'pakke', 'knivspids', 'bundt', 'fed',
 ];
 
+// Bagudkompatibel {value,label}-liste (value = det der gemmes; label = visning, nu ens).
+export const UNITS: { value: string; label: string }[] = BASE_UNITS.map(u => ({ value: u, label: u }));
+
+// Ældre data (eller ikke-migrerede rækker) kan stadig have de gamle enum-navne ("Daase",
+// "G" …); vis dem pænt. Egne/fri-tekst enheder vises uændret.
+const LEGACY_LABELS: Record<string, string> = {
+  Stk: 'stk', G: 'g', Kg: 'kg', Ml: 'ml', L: 'l', Spsk: 'spsk', Tsk: 'tsk',
+  Daase: 'dåse', Pakke: 'pakke', Knivspids: 'knivspids', Bundt: 'bundt', Fed: 'fed',
+};
+
 export function unitLabel(u: Unit): string {
-  return UNITS.find(x => x.value === u)?.label ?? u;
+  return LEGACY_LABELS[u] ?? u;
+}
+
+// Fletter standard-forslag med husstandens tidligere brugte enheder (deduplikeret
+// case-insensitivt, første skrivemåde vinder). Bruges til enheds-comboboxens datalist.
+export function mergeUnitSuggestions(...lists: (string[] | undefined | null)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const list of lists) {
+    for (const raw of list ?? []) {
+      const t = (raw ?? '').trim();
+      if (!t) continue;
+      const k = t.toLowerCase();
+      if (!seen.has(k)) { seen.add(k); out.push(t); }
+    }
+  }
+  return out;
 }
 
 export interface Category { id: number; name: string; sortOrder: number; }
