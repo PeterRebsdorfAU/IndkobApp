@@ -8,7 +8,7 @@ namespace IndkobsApp.Api.Tests;
 /// <summary>
 /// Tests for indkøbsliste-aggregeringen — appens hjerte: sammenlægning pr. ingrediens,
 /// enhedskonvertering (g↔kg, ml↔l), adskillelse af uforenelige enheder, kategori-
-/// sortering, portions-skalering og afstemning mod køkkenlageret.
+/// sortering og portions-skalering.
 /// </summary>
 public class ShoppingListServiceTests
 {
@@ -187,7 +187,7 @@ public class ShoppingListServiceTests
     }
 
     [Fact]
-    public async Task Fritekst_vare_havner_i_andet_og_matches_ikke_mod_lager()
+    public async Task Fritekst_vare_havner_i_andet()
     {
         var db = TestDb.NewContext(out var name);
         SeedBase(db);
@@ -238,81 +238,6 @@ public class ShoppingListServiceTests
         var line = Assert.Single(AllLines(list!));
         Assert.Equal(2m, line.Quantity);
         Assert.Equal(Unit.Pakke, line.Unit);
-    }
-
-    // ---- Afstemning mod køkkenlageret (behov − på-lager) ------------------------
-
-    [Fact]
-    public async Task Lager_traekkes_fra_saa_kun_manglende_mængde_skal_købes()
-    {
-        var db = TestDb.NewContext(out var name);
-        SeedBase(db);
-        AddIngredient(db, 10, "Ris");
-        AddRecipeToWeek(db, 100, 1, 4, null, (10, 1m, Unit.Kg)); // behov 1000 g
-        db.PantryItems.Add(new PantryItem { Id = 1, HouseholdId = HouseholdId, IngredientId = 10, Quantity = 400m, Unit = Unit.G });
-        db.SaveChanges();
-
-        var list = await new ShoppingListService(TestDb.Open(name)).BuildAsync(100);
-
-        var line = Assert.Single(AllLines(list!));
-        Assert.Equal(600m, line.Quantity);       // 1000 − 400
-        Assert.Equal(Unit.G, line.Unit);
-        Assert.Equal(400m, line.OnHandQuantity);
-        Assert.Equal(Unit.G, line.OnHandUnit);
-    }
-
-    [Fact]
-    public async Task Lager_der_dækker_hele_behovet_giver_nul_at_købe()
-    {
-        var db = TestDb.NewContext(out var name);
-        SeedBase(db);
-        AddIngredient(db, 10, "Salt");
-        AddRecipeToWeek(db, 100, 1, 4, null, (10, 200m, Unit.G));
-        // Rigeligt på lager (500 g) → skal-købes = 0, men lageret vises stadig.
-        db.PantryItems.Add(new PantryItem { Id = 1, HouseholdId = HouseholdId, IngredientId = 10, Quantity = 500m, Unit = Unit.G });
-        db.SaveChanges();
-
-        var list = await new ShoppingListService(TestDb.Open(name)).BuildAsync(100);
-
-        var line = Assert.Single(AllLines(list!));
-        Assert.Equal(0m, line.Quantity);
-        Assert.Equal(500m, line.OnHandQuantity);
-    }
-
-    [Fact]
-    public async Task Lager_i_anden_enhed_afstemmes_via_konvertering()
-    {
-        var db = TestDb.NewContext(out var name);
-        SeedBase(db);
-        AddIngredient(db, 10, "Hakket oksekød");
-        AddRecipeToWeek(db, 100, 1, 4, null, (10, 1m, Unit.Kg)); // behov 1000 g
-        // På lager: 0,5 kg. Behov − lager = 500 g.
-        db.PantryItems.Add(new PantryItem { Id = 1, HouseholdId = HouseholdId, IngredientId = 10, Quantity = 0.5m, Unit = Unit.Kg });
-        db.SaveChanges();
-
-        var list = await new ShoppingListService(TestDb.Open(name)).BuildAsync(100);
-
-        var line = Assert.Single(AllLines(list!));
-        Assert.Equal(500m, line.Quantity);
-        Assert.Equal(Unit.G, line.Unit);
-    }
-
-    [Fact]
-    public async Task Lager_i_uforenelig_enhed_paavirker_ikke_linjen()
-    {
-        var db = TestDb.NewContext(out var name);
-        SeedBase(db);
-        AddIngredient(db, 10, "Smør");
-        AddRecipeToWeek(db, 100, 1, 4, null, (10, 200m, Unit.G)); // behov i gram
-        // Lager i "pakke" (count) kan ikke afstemmes mod masse → intet trækkes fra.
-        db.PantryItems.Add(new PantryItem { Id = 1, HouseholdId = HouseholdId, IngredientId = 10, Quantity = 2m, Unit = Unit.Pakke });
-        db.SaveChanges();
-
-        var list = await new ShoppingListService(TestDb.Open(name)).BuildAsync(100);
-
-        var line = Assert.Single(AllLines(list!));
-        Assert.Equal(200m, line.Quantity);
-        Assert.Null(line.OnHandQuantity); // ingen match i samme familie
     }
 
     // ---- Afkrydsning huskes via LineKey -----------------------------------------

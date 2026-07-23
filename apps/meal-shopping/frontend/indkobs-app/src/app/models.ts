@@ -55,7 +55,7 @@ export interface Week { id: number; year: number; weekNumber: number; }
 export interface WeekRecipe {
   id: number; recipeId: number; recipeName: string;
   baseServings: number; servings: number | null; dayOfWeek: number | null;
-  cookedUtc: string | null; // sat = markeret "lavet" (lager fratrukket)
+  cookedUtc: string | null; // sat = markeret "lavet" (historik)
 }
 export interface WeekItemGroup { id: number; itemGroupId: number; itemGroupName: string; }
 export interface WeekManualItem { id: number; ingredientId: number | null; name: string; quantity: number; unit: Unit; }
@@ -68,8 +68,6 @@ export interface WeekDetail {
 export interface ShoppingLine {
   lineKey: string; ingredientId: number | null; name: string;
   quantity: number; unit: Unit; isChecked: boolean; isManual: boolean; sources: string[];
-  // Køkkenlager-afstemning: quantity = det der skal KØBES; onHand = det man har hjemme.
-  onHandQuantity: number | null; onHandUnit: Unit | null;
 }
 export interface ShoppingCategoryGroup {
   categoryId: number | null; categoryName: string; sortOrder: number; lines: ShoppingLine[];
@@ -92,17 +90,8 @@ export interface CatalogRecipe {
 }
 export interface AdoptResult { recipeId: number; recipeName: string; weekId: number | null; }
 
-// ---------- Køkkenlager ----------
-export interface PantryItem {
-  id: number; ingredientId: number; ingredientName: string;
-  categoryName: string | null; quantity: number; unit: Unit;
-}
-
 // ---------- Deling ----------
 export interface ShareToken { token: string; }
-
-// ---------- Lager-kredsløb ----------
-export interface StockCheckedResult { linesStocked: number; }
 
 // ---------- Hjemmets opgaver ----------
 export interface HouseholdTask {

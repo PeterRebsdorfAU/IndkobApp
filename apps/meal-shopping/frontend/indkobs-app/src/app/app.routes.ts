@@ -15,7 +15,6 @@ export const routes: Routes = [
   { path: 'uge', canActivate: [authGuard], loadComponent: () => import('./pages/week-plan').then(m => m.WeekPlanPage) },
   { path: 'indkob', canActivate: [authGuard], loadComponent: () => import('./pages/shopping-list').then(m => m.ShoppingListPage) },
   { path: 'retter', canActivate: [authGuard], loadComponent: () => import('./pages/recipes').then(m => m.RecipesPage) },
-  { path: 'lager', canActivate: [authGuard], loadComponent: () => import('./pages/pantry').then(m => m.PantryPage) },
   { path: 'hjem', canActivate: [authGuard], loadComponent: () => import('./pages/home-tasks').then(m => m.HomeTasksPage) },
   { path: 'varegrupper', canActivate: [authGuard], loadComponent: () => import('./pages/item-groups').then(m => m.ItemGroupsPage) },
   { path: 'varer', canActivate: [authGuard], loadComponent: () => import('./pages/admin').then(m => m.AdminPage) },

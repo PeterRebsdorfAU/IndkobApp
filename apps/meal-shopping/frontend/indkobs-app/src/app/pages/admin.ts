@@ -146,6 +146,6 @@ export class AdminPage implements OnInit {
     this.error.set('');
     this.api.deleteIngredient(i.id)
       .subscribe({ next: () => this.loadIngredients(),
-                   error: () => this.error.set(`"${i.name}" er i brug (ret/varegruppe/lager) og kan ikke slettes.`) });
+                   error: () => this.error.set(`"${i.name}" er i brug (ret/varegruppe) og kan ikke slettes.`) });
   }
 }

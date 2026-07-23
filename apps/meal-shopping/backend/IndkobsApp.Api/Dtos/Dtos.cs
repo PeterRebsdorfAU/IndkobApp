@@ -45,8 +45,7 @@ public record AddWeekItemGroupDto(int ItemGroupId);
 public record AddWeekManualItemDto(int? IngredientId, string? FreeText, decimal Quantity, Unit Unit);
 
 // ---------- Indkøbsliste ----------
-// Quantity = det der SKAL KØBES (behov minus lager). OnHand* viser hvad husstanden
-// allerede har hjemme af varen (null hvis intet). Quantity 0 = fuldt dækket af lager.
+// Quantity = det fulde behov for varen (aggregeret på tværs af ugens retter/varegrupper/løse varer).
 public record ShoppingLineDto(
     string LineKey,
     int? IngredientId,
@@ -55,9 +54,7 @@ public record ShoppingLineDto(
     Unit Unit,
     bool IsChecked,
     bool IsManual,
-    List<string> Sources,
-    decimal? OnHandQuantity = null,
-    Unit? OnHandUnit = null);
+    List<string> Sources);
 
 public record ShoppingCategoryGroupDto(int? CategoryId, string CategoryName, int SortOrder, List<ShoppingLineDto> Lines);
 
@@ -84,16 +81,8 @@ public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings,
 public record AdoptCatalogRecipeDto(int? WeekId, int? Servings, int? DayOfWeek);
 public record AdoptResultDto(int RecipeId, string RecipeName, int? WeekId);
 
-// ---------- Køkkenlager (pantry) ----------
-public record PantryItemDto(int Id, int IngredientId, string IngredientName, string? CategoryName, decimal Quantity, Unit Unit);
-public record PantryUpsertDto(int? IngredientId, string? IngredientName, decimal Quantity, Unit Unit);
-public record PantryUpdateDto(decimal Quantity, Unit Unit);
-
 // ---------- Deling af indkøbsliste ----------
 public record ShareTokenDto(string Token);
-
-// ---------- Lager-kredsløb ----------
-public record StockCheckedResultDto(int LinesStocked);
 
 // ---------- Ordrer (butiks-flow) ----------
 public record StoreDto(string Name);
@@ -117,7 +106,6 @@ public record DataExportDto(
     List<ExportRecipeDto> Recipes,
     List<ExportItemGroupDto> ItemGroups,
     List<ExportWeekDto> Weeks,
-    List<ExportPantryItemDto> Pantry,
     List<ExportTaskDto> Tasks,
     List<ExportOrderDto> Orders,
     List<ExportPublishedRecipeDto> PublishedToCatalog);
@@ -138,7 +126,6 @@ public record ExportWeekDto(
     List<ExportWeekItemGroupDto> ItemGroups,
     List<ExportWeekManualItemDto> ManualItems,
     List<ExportWeekCheckDto> Checks);
-public record ExportPantryItemDto(string Ingredient, string? Category, decimal Quantity, string Unit);
 public record ExportTaskDto(int Id, string Title, int? IntervalDays, string? NextDueDate, string? Assignees, bool IsDone, string? LastCompletedUtc, string CreatedUtc);
 public record ExportOrderLineDto(string Name, decimal Quantity, string Unit, string? Category, bool IsPacked, bool NotAvailable);
 public record ExportOrderDto(int Id, string StoreName, string Status, string? Note, string CreatedUtc, string? ReadyUtc, List<ExportOrderLineDto> Lines);

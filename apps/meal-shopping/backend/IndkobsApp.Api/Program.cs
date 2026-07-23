@@ -37,7 +37,6 @@ builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionStrin
 
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<ShoppingListService>();
-builder.Services.AddScoped<PantryService>();
 builder.Services.AddScoped<WeekCleanupService>();
 
 // Auth: password-hashing + JWT-udstedelse/validering.
