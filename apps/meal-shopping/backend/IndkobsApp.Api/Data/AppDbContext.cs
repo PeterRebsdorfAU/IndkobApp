@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<CatalogRecipe> CatalogRecipes => Set<CatalogRecipe>();
     public DbSet<CatalogRecipeIngredient> CatalogRecipeIngredients => Set<CatalogRecipeIngredient>();
     public DbSet<WeekShareToken> WeekShareTokens => Set<WeekShareToken>();
+    public DbSet<RecipeShare> RecipeShares => Set<RecipeShare>();
     public DbSet<HouseholdTask> HouseholdTasks => Set<HouseholdTask>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
@@ -208,6 +209,18 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.WeekId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<RecipeShare>(e =>
+        {
+            // Én deling pr. (opskrift, modtager-husstand) — gentagen deling er idempotent.
+            e.HasIndex(x => new { x.RecipeId, x.TargetHouseholdId }).IsUnique();
+            e.HasIndex(x => x.TargetHouseholdId); // hurtigt opslag af "delt med mig"
+            // Slettes opskriften, ryger dens delinger med (cascade).
+            e.HasOne(x => x.Recipe).WithMany().HasForeignKey(x => x.RecipeId).OnDelete(DeleteBehavior.Cascade);
+            // Modtager-husstanden: Restrict (som Category/Ingredient) — husstands-sletning rydder
+            // eksplicit op i HouseholdEraser, så vi undgår flere cascade-stier til Household.
+            e.HasOne<Household>().WithMany().HasForeignKey(x => x.TargetHouseholdId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<HouseholdTask>(e =>

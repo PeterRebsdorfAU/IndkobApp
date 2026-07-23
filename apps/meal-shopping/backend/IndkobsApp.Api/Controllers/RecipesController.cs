@@ -16,11 +16,14 @@ public class RecipesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IngredientService _ingredients;
     private readonly IRecipeScanner _scanner;
-    public RecipesController(AppDbContext db, IngredientService ingredients, IRecipeScanner scanner)
+    private readonly RecipeAdoptionService _adoption;
+    public RecipesController(AppDbContext db, IngredientService ingredients, IRecipeScanner scanner,
+        RecipeAdoptionService adoption)
     {
         _db = db;
         _ingredients = ingredients;
         _scanner = scanner;
+        _adoption = adoption;
     }
 
     [HttpGet]
@@ -166,6 +169,169 @@ public class RecipesController : ControllerBase
         _db.CatalogRecipes.Remove(entry);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // ---------- Selektiv deling: del én opskrift med én udvalgt modtager-husstand ----------
+
+    /// <summary>
+    /// Del opskriften med den husstand hvis login-email matcher <c>dto.Email</c>. Kun ejeren af
+    /// opskriften kan dele. Modtageren slås op via login-email (Household eller individuel bruger).
+    /// Idempotent: samme (opskrift, modtager) kan deles igen uden fejl.
+    /// </summary>
+    [HttpPost("{id:int}/share")]
+    public async Task<ActionResult<RecipeShareTargetDto>> Share(int id, ShareRecipeDto dto)
+    {
+        var hid = User.GetHouseholdId();
+        var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
+        if (recipe == null) return NotFound(); // kun ejeren kan dele (husstands-scoping)
+
+        var email = Household.NormalizeEmail(dto.Email);
+        if (string.IsNullOrWhiteSpace(email)) return BadRequest("Angiv en modtager-email.");
+
+        var target = await ResolveHouseholdByEmailAsync(email);
+        if (target == null) return NotFound(new { message = "Ingen konto med den email." });
+        if (target.Id == hid) return BadRequest("Du kan ikke dele med din egen husstand.");
+
+        var existing = await _db.RecipeShares
+            .FirstOrDefaultAsync(s => s.RecipeId == id && s.TargetHouseholdId == target.Id);
+        if (existing == null)
+        {
+            existing = new RecipeShare { RecipeId = id, TargetHouseholdId = target.Id };
+            _db.RecipeShares.Add(existing);
+            await _db.SaveChangesAsync();
+        }
+        return new RecipeShareTargetDto(target.Id, target.Name, existing.CreatedUtc.ToString("o"));
+    }
+
+    /// <summary>Fjern en deling igen (kun ejeren). Ukendt deling → 404.</summary>
+    [HttpDelete("{id:int}/share/{targetHouseholdId:int}")]
+    public async Task<IActionResult> Unshare(int id, int targetHouseholdId)
+    {
+        var hid = User.GetHouseholdId();
+        // Verificér ejerskab: delingen skal pege på en opskrift DENNE husstand ejer.
+        var share = await _db.RecipeShares
+            .FirstOrDefaultAsync(s => s.RecipeId == id && s.TargetHouseholdId == targetHouseholdId
+                && s.Recipe.HouseholdId == hid);
+        if (share == null) return NotFound();
+        _db.RecipeShares.Remove(share);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Hvem opskriften er delt med (kun ejeren ser listen).</summary>
+    [HttpGet("{id:int}/shares")]
+    public async Task<ActionResult<IEnumerable<RecipeShareTargetDto>>> GetShares(int id)
+    {
+        var hid = User.GetHouseholdId();
+        var owns = await _db.Recipes.AnyAsync(r => r.Id == id && r.HouseholdId == hid);
+        if (!owns) return NotFound();
+
+        var shares = await _db.RecipeShares
+            .Where(s => s.RecipeId == id)
+            .Join(_db.Households, s => s.TargetHouseholdId, h => h.Id,
+                (s, h) => new RecipeShareTargetDto(h.Id, h.Name, s.CreatedUtc.ToString("o")))
+            .OrderBy(x => x.HouseholdName)
+            .ToListAsync();
+        return shares;
+    }
+
+    /// <summary>Opskrifter delt TIL min husstand (skrivebeskyttet visning + mulighed for adoption).</summary>
+    [HttpGet("shared-with-me")]
+    public async Task<IEnumerable<SharedRecipeDto>> SharedWithMe()
+    {
+        var hid = User.GetHouseholdId();
+        // Projektér UDEN billed-blob (kun HasImage) — samme mønster som listning af egne opskrifter.
+        var rows = await _db.RecipeShares
+            .Where(s => s.TargetHouseholdId == hid)
+            .OrderByDescending(s => s.CreatedUtc)
+            .Select(s => new
+            {
+                s.CreatedUtc,
+                R = s.Recipe,
+                OwnerName = _db.Households.Where(h => h.Id == s.Recipe.HouseholdId)
+                    .Select(h => h.Name).FirstOrDefault(),
+                HasImage = s.Recipe.Image != null,
+                Ingredients = s.Recipe.Ingredients.Select(ri => new IngredientLineDto(
+                    ri.Id, ri.IngredientId, ri.Ingredient.Name,
+                    ri.Ingredient.Category == null ? null : ri.Ingredient.Category.Name,
+                    ri.Quantity, ri.Unit)).ToList()
+            })
+            .ToListAsync();
+
+        return rows.Select(x => new SharedRecipeDto(
+            x.R.Id, x.R.Name, x.R.Note, x.R.Servings,
+            x.Ingredients.OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList(),
+            x.R.Method, x.HasImage, x.OwnerName ?? "", x.CreatedUtc.ToString("o")));
+    }
+
+    /// <summary>
+    /// Adoptér en opskrift der er delt til min husstand: kopiér den til mine egne opskrifter
+    /// (genbruger den fælles adoptions-logik; tager Method + billede med) og læg den evt. på en uge.
+    /// Kun tilladt hvis opskriften faktisk er delt til min husstand.
+    /// </summary>
+    [HttpPost("shared-with-me/{recipeId:int}/adopt")]
+    public async Task<ActionResult<AdoptResultDto>> AdoptShared(int recipeId, AdoptCatalogRecipeDto? dto)
+    {
+        var hid = User.GetHouseholdId();
+        var isSharedToMe = await _db.RecipeShares
+            .AnyAsync(s => s.RecipeId == recipeId && s.TargetHouseholdId == hid);
+        if (!isSharedToMe) return NotFound(); // ikke delt til mig
+
+        var source = await _db.Recipes
+            .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient)
+            .FirstOrDefaultAsync(r => r.Id == recipeId);
+        if (source == null) return NotFound();
+
+        var recipe = await _adoption.AdoptAsync(
+            hid, source.Name, source.Note, source.Servings,
+            source.Method, source.Image, source.ImageContentType,
+            source.Ingredients.Select(ri => new RecipeAdoptionService.AdoptLine(
+                ri.Ingredient.Name, ri.Quantity, ri.Unit)).ToList());
+
+        // Læg evt. på en af MINE uger med det samme.
+        int? weekId = null;
+        if (dto?.WeekId is int wid)
+        {
+            var ownsWeek = await _db.Weeks.AnyAsync(w => w.Id == wid && w.HouseholdId == hid);
+            if (!ownsWeek) return BadRequest("Ukendt uge.");
+            _db.WeekRecipes.Add(new WeekRecipe
+            {
+                WeekId = wid,
+                RecipeId = recipe.Id,
+                Servings = dto.Servings,
+                DayOfWeek = dto.DayOfWeek
+            });
+            await _db.SaveChangesAsync();
+            weekId = wid;
+        }
+
+        return new AdoptResultDto(recipe.Id, recipe.Name, weekId);
+    }
+
+    /// <summary>Serverer billedet for en opskrift der er delt til min husstand.</summary>
+    [HttpGet("shared-with-me/{recipeId:int}/image")]
+    public async Task<IActionResult> GetSharedImage(int recipeId)
+    {
+        var hid = User.GetHouseholdId();
+        var row = await _db.RecipeShares
+            .Where(s => s.RecipeId == recipeId && s.TargetHouseholdId == hid)
+            .Select(s => new { s.Recipe.Image, s.Recipe.ImageContentType })
+            .FirstOrDefaultAsync();
+        if (row?.Image == null) return NotFound();
+        Response.Headers.CacheControl = "private, max-age=86400";
+        return File(row.Image, row.ImageContentType ?? "application/octet-stream");
+    }
+
+    // Slår en husstand op ud fra en login-email: enten husstandens eget login (Household.Email)
+    // eller en individuel brugers login (User.Email → dennes husstand). Begge normaliseres ens.
+    private async Task<Household?> ResolveHouseholdByEmailAsync(string normalizedEmail)
+    {
+        var household = await _db.Households.FirstOrDefaultAsync(h => h.Email == normalizedEmail);
+        if (household != null) return household;
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+        if (user == null) return null;
+        return await _db.Households.FirstOrDefaultAsync(h => h.Id == user.HouseholdId);
     }
 
     // Oversætter input-linjer til RecipeIngredient og sikrer normaliserede ingredienser

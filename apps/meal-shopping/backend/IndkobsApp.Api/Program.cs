@@ -36,6 +36,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default");
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IngredientService>();
+builder.Services.AddScoped<RecipeAdoptionService>();
 builder.Services.AddScoped<ShoppingListService>();
 builder.Services.AddScoped<WeekCleanupService>();
 

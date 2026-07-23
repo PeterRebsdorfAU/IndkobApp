@@ -100,6 +100,16 @@ export interface AdoptResult { recipeId: number; recipeName: string; weekId: num
 // ---------- Deling ----------
 export interface ShareToken { token: string; }
 
+// ---------- Selektiv deling af opskrifter ----------
+// En modtager en egen opskrift er delt med (ejerens "delt med"-liste).
+export interface RecipeShareTarget { targetHouseholdId: number; householdName: string; createdUtc: string; }
+// En opskrift der er delt TIL min husstand (skrivebeskyttet + "Tilføj til mine").
+export interface SharedRecipe {
+  id: number; name: string; note: string | null; servings: number;
+  ingredients: IngredientLine[]; method: string | null; hasImage: boolean;
+  sharedByHouseholdName: string; createdUtc: string;
+}
+
 // ---------- Hjemmets opgaver ----------
 export interface HouseholdTask {
   id: number; title: string;

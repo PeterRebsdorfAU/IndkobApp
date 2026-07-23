@@ -5,6 +5,7 @@ import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
   CatalogRecipe, AdoptResult, ShareToken,
+  RecipeShareTarget, SharedRecipe,
   HouseholdTask, TasksSummary, Store, Order, InviteResult
 } from './models';
 import { environment } from '../environments/environment';
@@ -112,6 +113,25 @@ export class Api {
   }
   publishRecipe(id: number) { return this.http.post(`${API}/recipes/${id}/publish`, {}); }
   unpublishRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}/publish`); }
+
+  // ----- Selektiv deling af opskrifter (med én udvalgt modtager) -----
+  shareRecipe(id: number, email: string) {
+    return this.http.post<RecipeShareTarget>(`${API}/recipes/${id}/share`, { email });
+  }
+  unshareRecipe(id: number, targetHouseholdId: number) {
+    return this.http.delete(`${API}/recipes/${id}/share/${targetHouseholdId}`);
+  }
+  getRecipeShares(id: number): Observable<RecipeShareTarget[]> {
+    return this.http.get<RecipeShareTarget[]>(`${API}/recipes/${id}/shares`);
+  }
+  getSharedWithMe(): Observable<SharedRecipe[]> {
+    return this.http.get<SharedRecipe[]>(`${API}/recipes/shared-with-me`);
+  }
+  adoptSharedRecipe(recipeId: number, body: { weekId?: number | null; servings?: number | null; dayOfWeek?: number | null } = {}) {
+    return this.http.post<AdoptResult>(`${API}/recipes/shared-with-me/${recipeId}/adopt`, body);
+  }
+  // Billede for en opskrift delt TIL min husstand (Bearer sættes af interceptoren via secure-image).
+  sharedRecipeImageUrl(recipeId: number) { return `${API}/recipes/shared-with-me/${recipeId}/image`; }
 
   // ----- Deling af indkøbsliste -----
   createShare(weekId: number) { return this.http.post<ShareToken>(`${API}/weeks/${weekId}/share`, {}); }

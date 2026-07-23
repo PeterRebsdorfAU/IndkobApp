@@ -22,6 +22,11 @@ public static class HouseholdEraser
         // varebank/kategorier, og til sidst selve husstanden. Øvrige relationer
         // (uge-indhold, checks, delings-tokens, katalog-snapshots, ordrer) kaskaderer.
         db.Users.RemoveRange(db.Users.Where(u => u.HouseholdId == householdId));
+        // Opskrift-delinger i BEGGE roller: dem husstanden har oprettet (via sine opskrifter) og
+        // dem den er modtager af. Modtager-siden er Restrict, så den SKAL fjernes eksplicit her;
+        // kilde-siden fjernes også eksplicit, så oprydningen virker ens på InMemory og relationelt.
+        db.RecipeShares.RemoveRange(db.RecipeShares
+            .Where(s => s.TargetHouseholdId == householdId || s.Recipe.HouseholdId == householdId));
         db.Recipes.RemoveRange(db.Recipes.Where(r => r.HouseholdId == householdId));
         db.ItemGroups.RemoveRange(db.ItemGroups.Where(g => g.HouseholdId == householdId));
         db.Weeks.RemoveRange(db.Weeks.Where(w => w.HouseholdId == householdId));
