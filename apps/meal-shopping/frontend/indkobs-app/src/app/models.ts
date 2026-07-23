@@ -41,6 +41,7 @@ export interface Recipe {
   id: number; name: string; note: string | null; servings: number; ingredients: IngredientLine[];
   method: string | null; // valgfri fremgangsmåde (fritekst, evt. flere linjer)
   isPublic: boolean; // publiceret til den fælles inspirationsside?
+  hasImage: boolean; // har et billede (hentes via GET /recipes/{id}/image)
 }
 export interface RecipeUpsert {
   name: string; note: string | null; servings: number; ingredients: IngredientLineInput[];
@@ -94,6 +95,7 @@ export interface CatalogRecipe {
   tags: string[]; ingredients: CatalogLine[];
   method: string | null; // valgfri fremgangsmåde (fritekst, evt. flere linjer)
   sharedBy: string | null; // husstand der har delt den (null = kurateret)
+  hasImage: boolean; // har et billede (hentes via GET /catalog/recipes/{id}/image)
 }
 export interface AdoptResult { recipeId: number; recipeName: string; weekId: number | null; }
 

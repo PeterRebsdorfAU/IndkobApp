@@ -90,6 +90,15 @@ public class Recipe
     /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
     public string? Method { get; set; }
 
+    /// <summary>
+    /// Valgfrit billede, gemt KOMPRIMERET (server-side nedskaleret ~1024px JPEG, mål &lt; ~300 KB)
+    /// som <c>bytea</c>. Null = intet billede. Serveres via GET /api/recipes/{id}/image.
+    /// </summary>
+    public byte[]? Image { get; set; }
+
+    /// <summary>MIME-type for <see cref="Image"/> (fx "image/jpeg"). Null når intet billede.</summary>
+    public string? ImageContentType { get; set; }
+
     public List<RecipeIngredient> Ingredients { get; set; } = new();
 }
 
@@ -225,6 +234,14 @@ public class CatalogRecipe
 
     /// <summary>Valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.</summary>
     public string? Method { get; set; }
+
+    /// <summary>
+    /// Valgfrit billede (samme komprimerede format som <see cref="Recipe.Image"/>). Kopieres
+    /// med fra kilde-opskriften ved publish, og videre til den nye opskrift ved adoption.
+    /// Serveres via GET /api/catalog/recipes/{id}/image.
+    /// </summary>
+    public byte[]? Image { get; set; }
+    public string? ImageContentType { get; set; }
 
     /// <summary>
     /// Sat hvis opskriften er PUBLICERET af en husstand (community-deling) — null for

@@ -28,25 +28,46 @@ public class CatalogController : ControllerBase
     [HttpGet("recipes")]
     public async Task<IEnumerable<CatalogRecipeDto>> GetAll()
     {
-        var recipes = await _db.CatalogRecipes
-            .Include(r => r.Ingredients)
+        // Projektér, så det (potentielt store) billede-bytea IKKE hentes ved listning af hele
+        // det fælles katalog — kun et HasImage-flag. Billedet serveres separat pr. opskrift.
+        var rows = await _db.CatalogRecipes
             .OrderBy(r => r.Title)
+            .Select(r => new
+            {
+                r.Id, r.Title, r.Note, r.Servings, r.Tags, r.Method, r.SourceHouseholdId,
+                HasImage = r.Image != null,
+                Ingredients = r.Ingredients.Select(i => new CatalogLineDto(i.Name, i.Quantity, i.Unit)).ToList()
+            })
             .ToListAsync();
 
         // Navne på husstande der har delt opskrifter (vises som "delt af X").
-        var householdIds = recipes.Where(r => r.SourceHouseholdId != null)
+        var householdIds = rows.Where(r => r.SourceHouseholdId != null)
             .Select(r => r.SourceHouseholdId!.Value).Distinct().ToList();
         var names = await _db.Households
             .Where(h => householdIds.Contains(h.Id))
             .ToDictionaryAsync(h => h.Id, h => h.Name);
 
-        return recipes.Select(r => new CatalogRecipeDto(
+        return rows.Select(r => new CatalogRecipeDto(
             r.Id, r.Title, r.Note, r.Servings,
             (r.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-            r.Ingredients.Select(i => new CatalogLineDto(i.Name, i.Quantity, i.Unit))
-                .OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+            r.Ingredients.OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList(),
             r.Method,
-            r.SourceHouseholdId is int shid ? names.GetValueOrDefault(shid) : null));
+            r.SourceHouseholdId is int shid ? names.GetValueOrDefault(shid) : null,
+            r.HasImage));
+    }
+
+    /// <summary>Serverer katalog-opskriftens billede (fælles/offentligt indhold).</summary>
+    [HttpGet("recipes/{id:int}/image")]
+    public async Task<IActionResult> GetImage(int id)
+    {
+        var row = await _db.CatalogRecipes
+            .Where(r => r.Id == id)
+            .Select(r => new { r.Image, r.ImageContentType })
+            .FirstOrDefaultAsync();
+        if (row?.Image == null) return NotFound();
+        // Kataloget er fælles for alle husstande → offentlig cache er fint.
+        Response.Headers.CacheControl = "public, max-age=86400";
+        return File(row.Image, row.ImageContentType ?? "application/octet-stream");
     }
 
     /// <summary>
@@ -76,7 +97,9 @@ public class CatalogController : ControllerBase
                 Name = cat.Title,
                 Note = cat.Note,
                 Servings = cat.Servings,
-                Method = cat.Method // fremgangsmåde kopieres med over
+                Method = cat.Method, // fremgangsmåde kopieres med over
+                Image = cat.Image,   // billedet kopieres med i den nye opskrift
+                ImageContentType = cat.ImageContentType
             };
             foreach (var line in cat.Ingredients)
             {

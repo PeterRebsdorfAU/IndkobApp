@@ -25,29 +25,32 @@ public class RecipesController : ControllerBase
     public async Task<IEnumerable<RecipeDto>> GetAll()
     {
         var hid = User.GetHouseholdId();
-        var recipes = await _db.Recipes
+        // Projektér (i stedet for at loade hele entiteten), så det evt. store billede-bytea
+        // ALDRIG hentes ved listning — kun et HasImage-flag. Billedet serveres separat.
+        var rows = await _db.Recipes
             .Where(r => r.HouseholdId == hid)
-            .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
             .OrderBy(r => r.Name)
+            .Select(ToRow)
             .ToListAsync();
         // Hvilke af husstandens opskrifter er publiceret til inspirationssiden?
         var publicIds = await _db.CatalogRecipes
             .Where(c => c.SourceHouseholdId == hid && c.SourceRecipeId != null)
             .Select(c => c.SourceRecipeId!.Value)
             .ToHashSetAsync();
-        return recipes.Select(r => Map(r, publicIds.Contains(r.Id)));
+        return rows.Select(r => ToDto(r, publicIds.Contains(r.Id)));
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<RecipeDto>> Get(int id)
     {
         var hid = User.GetHouseholdId();
-        var r = await _db.Recipes
-            .Include(r => r.Ingredients).ThenInclude(ri => ri.Ingredient).ThenInclude(i => i.Category)
-            .FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
-        if (r == null) return NotFound();
+        var row = await _db.Recipes
+            .Where(r => r.Id == id && r.HouseholdId == hid)
+            .Select(ToRow)
+            .FirstOrDefaultAsync();
+        if (row == null) return NotFound();
         var isPublic = await _db.CatalogRecipes.AnyAsync(c => c.SourceRecipeId == id);
-        return Map(r, isPublic);
+        return ToDto(row, isPublic);
     }
 
     [HttpPost]
@@ -133,6 +136,8 @@ public class RecipesController : ControllerBase
         existing.Note = r.Note;
         existing.Servings = r.Servings;
         existing.Method = r.Method; // fremgangsmåde følger med i snapshottet
+        existing.Image = r.Image;   // billedet kopieres med i katalog-snapshottet
+        existing.ImageContentType = r.ImageContentType;
         foreach (var ri in r.Ingredients)
         {
             existing.Ingredients.Add(new CatalogRecipeIngredient
@@ -178,10 +183,76 @@ public class RecipesController : ControllerBase
         }
     }
 
-    private static RecipeDto Map(Recipe r, bool isPublic = false) => new(
-        r.Id, r.Name, r.Note, r.Servings,
+    // Mellemform for projektion: alt undtagen billed-bytes (HasImage i stedet).
+    private sealed record RecipeRow(
+        int Id, string Name, string? Note, int Servings, string? Method, bool HasImage,
+        List<IngredientLineDto> Ingredients);
+
+    // EF-oversætbart udtryk: henter felterne + HasImage (r.Image != null) UDEN at loade blobben.
+    private static readonly System.Linq.Expressions.Expression<Func<Recipe, RecipeRow>> ToRow = r => new RecipeRow(
+        r.Id, r.Name, r.Note, r.Servings, r.Method, r.Image != null,
         r.Ingredients.Select(ri => new IngredientLineDto(
-            ri.Id, ri.IngredientId, ri.Ingredient.Name, ri.Ingredient.Category?.Name, ri.Quantity, ri.Unit))
-            .OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList(),
-        r.Method, isPublic);
+            ri.Id, ri.IngredientId, ri.Ingredient.Name,
+            ri.Ingredient.Category == null ? null : ri.Ingredient.Category.Name,
+            ri.Quantity, ri.Unit)).ToList());
+
+    private static RecipeDto ToDto(RecipeRow r, bool isPublic) => new(
+        r.Id, r.Name, r.Note, r.Servings,
+        r.Ingredients.OrderBy(l => l.IngredientName, StringComparer.OrdinalIgnoreCase).ToList(),
+        r.Method, isPublic, r.HasImage);
+
+    // ---------- Billede (valgfrit; upload + visning) ----------
+
+    /// <summary>Serverer opskriftens billede med korrekt content-type og en privat cache-header.</summary>
+    [HttpGet("{id:int}/image")]
+    public async Task<IActionResult> GetImage(int id)
+    {
+        var hid = User.GetHouseholdId();
+        var row = await _db.Recipes
+            .Where(r => r.Id == id && r.HouseholdId == hid)
+            .Select(r => new { r.Image, r.ImageContentType })
+            .FirstOrDefaultAsync();
+        if (row?.Image == null) return NotFound();
+        // Privat (husstands-scopet indhold) + genbrug i en dag; billedet skifter sjældent.
+        Response.Headers.CacheControl = "private, max-age=86400";
+        return File(row.Image, row.ImageContentType ?? "application/octet-stream");
+    }
+
+    /// <summary>
+    /// Uploader/erstatter opskriftens billede (multipart-felt "file"). Billedet nedskaleres og
+    /// komprimeres server-side (se <see cref="ImageService"/>), så DB'en ikke fyldes.
+    /// Grænsen for request-størrelse hæves KUN her (den globale Kestrel-grænse er 1 MB), så
+    /// store telefonbilleder kan modtages og derefter skæres ned til ~100–250 KB inden lagring.
+    /// </summary>
+    [HttpPost("{id:int}/image")]
+    [RequestSizeLimit(8 * 1024 * 1024)] // 8 MB rå-upload; komprimeres ned før lagring
+    public async Task<ActionResult<RecipeDto>> UploadImage(int id, IFormFile? file)
+    {
+        var hid = User.GetHouseholdId();
+        var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
+        if (recipe == null) return NotFound();
+        if (file == null || file.Length == 0) return BadRequest("Ingen fil modtaget.");
+
+        await using var stream = file.OpenReadStream();
+        var processed = await ImageService.ProcessAsync(stream);
+        if (processed == null) return BadRequest("Filen kunne ikke læses som et billede.");
+
+        recipe.Image = processed.Value.Bytes;
+        recipe.ImageContentType = processed.Value.ContentType;
+        await _db.SaveChangesAsync();
+        return await Get(id);
+    }
+
+    /// <summary>Fjerner opskriftens billede igen.</summary>
+    [HttpDelete("{id:int}/image")]
+    public async Task<IActionResult> DeleteImage(int id)
+    {
+        var hid = User.GetHouseholdId();
+        var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == hid);
+        if (recipe == null) return NotFound();
+        recipe.Image = null;
+        recipe.ImageContentType = null;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
