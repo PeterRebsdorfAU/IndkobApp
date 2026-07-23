@@ -39,6 +39,17 @@ export class Api {
   updateRecipe(id: number, r: RecipeUpsert) { return this.http.put<Recipe>(`${API}/recipes/${id}`, r); }
   deleteRecipe(id: number) { return this.http.delete(`${API}/recipes/${id}`); }
 
+  // Opskrift-billede (valgfrit). Uploades som multipart; komprimeres yderligere server-side.
+  uploadRecipeImage(id: number, image: Blob) {
+    const form = new FormData();
+    form.append('file', image, 'billede.jpg');
+    return this.http.post<Recipe>(`${API}/recipes/${id}/image`, form);
+  }
+  deleteRecipeImage(id: number) { return this.http.delete(`${API}/recipes/${id}/image`); }
+  // Fulde URL'er til billed-endpoints (hentes med Bearer-token via secure-image-komponenten).
+  recipeImageUrl(id: number) { return `${API}/recipes/${id}/image`; }
+  catalogImageUrl(id: number) { return `${API}/catalog/recipes/${id}/image`; }
+
   // ----- Varegrupper -----
   getItemGroups(): Observable<ItemGroup[]> { return this.http.get<ItemGroup[]>(`${API}/item-groups`); }
   createItemGroup(g: ItemGroupUpsert) { return this.http.post<ItemGroup>(`${API}/item-groups`, g); }

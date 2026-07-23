@@ -17,7 +17,8 @@ public record IngredientLineDto(int Id, int IngredientId, string IngredientName,
 // ---------- Retter ----------
 // IsPublic = opskriften er publiceret til den fælles inspirationsside.
 // Method = valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.
-public record RecipeDto(int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients, string? Method = null, bool IsPublic = false);
+// HasImage = opskriften har et billede (hentes separat via GET /api/recipes/{id}/image).
+public record RecipeDto(int Id, string Name, string? Note, int Servings, List<IngredientLineDto> Ingredients, string? Method = null, bool IsPublic = false, bool HasImage = false);
 public record RecipeUpsertDto(string Name, string? Note, int Servings, List<IngredientLineInputDto> Ingredients, string? Method = null);
 
 // ---------- Varegrupper ----------
@@ -89,7 +90,8 @@ public record InviteResultDto(string InviteToken, string InviteLink);
 public record CatalogLineDto(string Name, decimal Quantity, Unit Unit);
 // SharedBy = navnet på husstanden der har delt opskriften (null for kuraterede).
 // Method = valgfri fremgangsmåde (fritekst, evt. flere linjer). Null = ingen angivet.
-public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings, List<string> Tags, List<CatalogLineDto> Ingredients, string? Method = null, string? SharedBy = null);
+// HasImage = katalog-opskriften har et billede (hentes via GET /api/catalog/recipes/{id}/image).
+public record CatalogRecipeDto(int Id, string Title, string? Note, int Servings, List<string> Tags, List<CatalogLineDto> Ingredients, string? Method = null, string? SharedBy = null, bool HasImage = false);
 // Adoptér en katalog-opskrift: kopiér til egne opskrifter og læg evt. på en uge med det samme.
 public record AdoptCatalogRecipeDto(int? WeekId, int? Servings, int? DayOfWeek);
 public record AdoptResultDto(int RecipeId, string RecipeName, int? WeekId);

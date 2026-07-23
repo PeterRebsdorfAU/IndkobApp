@@ -5,10 +5,12 @@ import { WeekState } from '../shared/week-state';
 import { Recipe, RecipeUpsert, Ingredient, IngredientLineInput, CatalogRecipe, unitLabel } from '../models';
 import { IngredientLinesEditor } from '../shared/ingredient-lines';
 import { EmptyState } from '../shared/empty-state';
+import { SecureImage } from '../shared/secure-image';
+import { downscaleImage } from '../shared/image-util';
 
 @Component({
   selector: 'page-recipes',
-  imports: [FormsModule, IngredientLinesEditor, EmptyState],
+  imports: [FormsModule, IngredientLinesEditor, EmptyState, SecureImage],
   template: `
     <h1>Retter</h1>
 
@@ -24,6 +26,9 @@ import { EmptyState } from '../shared/empty-state';
 
         @for (r of recipes(); track r.id) {
           <div class="card">
+            @if (r.hasImage) {
+              <secure-image [src]="recipeImageUrl(r.id)" [alt]="r.name" />
+            }
             <div class="spread">
               <div class="grow">
                 <h3>{{ r.name }} @if (r.isPublic) { <span class="badge">🌍 offentlig</span> }</h3>
@@ -84,6 +89,32 @@ import { EmptyState } from '../shared/empty-state';
               placeholder="Beskriv trinene, fx: 1) Brun kødet. 2) Tilsæt løg og hvidløg. 3) Lad simre 15 min."></textarea>
           </div>
 
+          <div class="field">
+            <label>Billede (valgfrit)</label>
+            @if (pendingPreview(); as p) {
+              <!-- Nyt, valgt billede (forhåndsvisning inden upload) -->
+              <img [src]="p" alt="Forhåndsvisning" class="recipe-image" />
+              <div class="row" style="margin-top:.4rem">
+                <button type="button" class="small" (click)="clearPendingImage()">Fjern valgt billede</button>
+              </div>
+            } @else if (form.id && editImageState() === 'keep') {
+              <!-- Eksisterende billede (vises kun ved redigering) -->
+              <secure-image [src]="recipeImageUrl(form.id)" alt="Nuværende billede" />
+              <div class="row" style="margin-top:.4rem">
+                <button type="button" class="small danger" (click)="editImageState.set('remove')">Fjern billede</button>
+              </div>
+            } @else if (editImageState() === 'remove') {
+              <div class="muted">Billedet fjernes når du gemmer.</div>
+              <div class="row" style="margin-top:.4rem">
+                <button type="button" class="small" (click)="editImageState.set('keep')">Fortryd</button>
+              </div>
+            }
+            <input type="file" accept="image/*" (change)="onImagePicked($event)" style="margin-top:.4rem" />
+            <div class="muted" style="font-size:.8rem;margin-top:.3rem">
+              Billedet skaleres automatisk ned, så det fylder lidt.
+            </div>
+          </div>
+
           <ingredient-lines [(lines)]="form.ingredients" [ingredients]="ingredients()" />
 
           @if (error()) { <div class="error">{{ error() }}</div> }
@@ -107,6 +138,9 @@ import { EmptyState } from '../shared/empty-state';
 
       @for (c of filteredCatalog(); track c.id) {
         <div class="card">
+          @if (c.hasImage) {
+            <secure-image [src]="catalogImageUrl(c.id)" [alt]="c.title" />
+          }
           <div class="spread">
             <div class="grow">
               <h3>{{ c.title }}</h3>
@@ -147,6 +181,16 @@ export class RecipesPage implements OnInit {
   editing = signal<(RecipeUpsert & { id: number | null }) | null>(null);
   error = signal('');
   saving = signal(false);
+
+  // Billede-tilstand i editoren:
+  //  - pendingImage/pendingPreview: et nyt (nedskaleret) billede valgt men ikke uploadet endnu.
+  //  - editImageState: for et EKSISTERENDE billede — beholdes ('keep') eller fjernes ('remove') ved gem.
+  pendingImage = signal<Blob | null>(null);
+  pendingPreview = signal<string | null>(null);
+  editImageState = signal<'keep' | 'remove'>('keep');
+
+  recipeImageUrl = (id: number) => this.api.recipeImageUrl(id);
+  catalogImageUrl = (id: number) => this.api.catalogImageUrl(id);
 
   // Inspiration
   tab = signal<'mine' | 'inspiration'>('mine');
@@ -198,18 +242,50 @@ export class RecipesPage implements OnInit {
 
   startNew() {
     this.error.set('');
+    this.resetImageState();
     this.editing.set({ id: null, name: '', note: '', servings: 4, ingredients: [], method: '' });
   }
 
   edit(r: Recipe) {
     this.error.set('');
+    this.resetImageState();
     const ingredients: IngredientLineInput[] = r.ingredients.map(i => ({
       ingredientId: i.ingredientId, ingredientName: i.ingredientName, quantity: i.quantity, unit: i.unit
     }));
     this.editing.set({ id: r.id, name: r.name, note: r.note ?? '', servings: r.servings, ingredients, method: r.method ?? '' });
   }
 
-  cancel() { this.editing.set(null); }
+  cancel() { this.resetImageState(); this.editing.set(null); }
+
+  // ---------- Billede i editoren ----------
+  async onImagePicked(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // tillad at vælge samme fil igen senere
+    if (!file) return;
+    let blob: Blob = file;
+    try {
+      blob = await downscaleImage(file); // nedskalér klient-side (serveren komprimerer også)
+    } catch {
+      // Kunne ikke nedskalere (fx eksotisk format) — upload originalen, serveren håndterer den.
+    }
+    this.clearPendingImage();
+    this.pendingImage.set(blob);
+    this.pendingPreview.set(URL.createObjectURL(blob));
+    this.editImageState.set('keep');
+  }
+
+  clearPendingImage() {
+    const url = this.pendingPreview();
+    if (url) URL.revokeObjectURL(url);
+    this.pendingImage.set(null);
+    this.pendingPreview.set(null);
+  }
+
+  private resetImageState() {
+    this.clearPendingImage();
+    this.editImageState.set('keep');
+  }
 
   save() {
     const form = this.editing();
@@ -227,9 +303,30 @@ export class RecipesPage implements OnInit {
       ? this.api.updateRecipe(form.id, payload)
       : this.api.createRecipe(payload);
     obs.subscribe({
-      next: () => { this.saving.set(false); this.editing.set(null); this.load(); this.loadIngredients(); },
+      next: saved => {
+        // Gem billedet EFTER opskriften findes (endpointet kræver et opskrift-id).
+        this.persistImage(saved.id).then(() => {
+          this.saving.set(false);
+          this.editing.set(null);
+          this.resetImageState();
+          this.load();
+          this.loadIngredients();
+        });
+      },
       error: () => { this.saving.set(false); this.error.set('Kunne ikke gemme. Kører backend?'); }
     });
+  }
+
+  // Uploader et nyt billede, eller sletter det eksisterende — afhængigt af editorens tilstand.
+  private async persistImage(recipeId: number): Promise<void> {
+    const pending = this.pendingImage();
+    if (pending) {
+      await new Promise<void>(resolve =>
+        this.api.uploadRecipeImage(recipeId, pending).subscribe({ next: () => resolve(), error: () => resolve() }));
+    } else if (this.editImageState() === 'remove') {
+      await new Promise<void>(resolve =>
+        this.api.deleteRecipeImage(recipeId).subscribe({ next: () => resolve(), error: () => resolve() }));
+    }
   }
 
   remove(r: Recipe) {

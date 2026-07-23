@@ -79,6 +79,8 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.Name).IsRequired().HasMaxLength(150);
             e.Property(x => x.Note).HasMaxLength(1000);
+            // Billede gemmes som bytea (byte[] mapper automatisk); begræns kun MIME-typen.
+            e.Property(x => x.ImageContentType).HasMaxLength(100);
             e.HasOne<Household>().WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.HouseholdId);
         });
@@ -179,6 +181,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Title).IsRequired().HasMaxLength(150);
             e.Property(x => x.Note).HasMaxLength(1000);
             e.Property(x => x.Tags).HasMaxLength(300);
+            e.Property(x => x.ImageContentType).HasMaxLength(100);
             // Community-publicerede opskrifter: fjernes automatisk hvis kilde-husstanden
             // eller kilde-opskriften slettes (snapshot følger kilden ud).
             e.HasOne<Household>().WithMany().HasForeignKey(x => x.SourceHouseholdId).OnDelete(DeleteBehavior.Cascade);
