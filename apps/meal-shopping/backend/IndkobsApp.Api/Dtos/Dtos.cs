@@ -68,11 +68,24 @@ public record CheckLineDto(string LineKey, bool IsChecked);
 public record LoginDto(string Email, string Password);
 // RefreshToken er additiv (default null): ældre klienter ignorerer feltet; refresh-bevidste
 // klienter (T2's frontend) gemmer det og kalder POST /api/auth/refresh når access-token udløber.
-public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, string HouseholdName, string? RefreshToken = null);
+// DisplayName/UserId (T2) er ligeledes additive: null for legacy husstands-login uden bruger.
+public record AuthResultDto(string Token, string ExpiresUtc, int HouseholdId, string HouseholdName,
+    string? RefreshToken = null, string? DisplayName = null, int? UserId = null);
 public record RefreshDto(string RefreshToken);
-public record MeDto(int HouseholdId, string HouseholdName, string Email);
+public record MeDto(int HouseholdId, string HouseholdName, string Email, string? DisplayName = null, int? UserId = null);
 public record CreateHouseholdDto(string Name, string Email, string Password);
 public record HouseholdDto(int Id, string Name, string Email);
+
+// ---------- T2: individuelle brugerkonti ----------
+// Signup i to varianter:
+//  - Ny husstand: udfyld HouseholdName (+ DisplayName/Email/Password). InviteToken = null.
+//  - Join eksisterende husstand: udfyld InviteToken (fra et invitationslink). HouseholdName ignoreres.
+public record SignupDto(string Email, string Password, string DisplayName, string? HouseholdName = null, string? InviteToken = null);
+public record ForgotPasswordDto(string Email);
+public record ResetPasswordDto(string Token, string NewPassword);
+public record ConfirmEmailDto(string Token);
+// Svar på POST /api/auth/invite: et token + et færdigt link den eksisterende bruger kan dele.
+public record InviteResultDto(string InviteToken, string InviteLink);
 
 // ---------- Inspiration / katalog ----------
 public record CatalogLineDto(string Name, decimal Quantity, Unit Unit);

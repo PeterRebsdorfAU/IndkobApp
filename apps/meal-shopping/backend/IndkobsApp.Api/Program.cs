@@ -42,7 +42,15 @@ builder.Services.AddScoped<WeekCleanupService>();
 
 // Auth: password-hashing + JWT-udstedelse/validering.
 builder.Services.AddSingleton<IPasswordHasher<Household>, PasswordHasher<Household>>();
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<TokenService>();
+
+// E-mail (T2): bekræftelse/kode-nulstilling/invitation. Udbyder vælges via Email:Provider.
+// Standard "console" (dev: log mailen). Sæt "smtp" + Email:Smtp:* i produktion for rigtig afsendelse.
+if (string.Equals(builder.Configuration["Email:Provider"], "smtp", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "";
 if (jwtKey.Length < 32)

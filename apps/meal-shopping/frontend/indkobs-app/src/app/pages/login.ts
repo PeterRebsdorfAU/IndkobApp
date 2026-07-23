@@ -1,26 +1,26 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../auth';
 import { LogoMark } from '../shared/logo';
 
 @Component({
   selector: 'page-login',
-  imports: [FormsModule, LogoMark],
+  imports: [FormsModule, RouterLink, LogoMark],
   template: `
     <div class="login-wrap">
       <div class="card login-card">
         <div class="login-brand">
           <app-logo [size]="52" />
           <h1>Madplan &amp; Indkøb</h1>
-          <p class="muted">Log ind med din husstands konto.</p>
+          <p class="muted">Log ind med din konto.</p>
         </div>
 
         <form (ngSubmit)="submit()">
           <div class="field">
-            <label>Brugernavn</label>
-            <input type="text" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
-                   placeholder="fx ClaraPeter" />
+            <label>Email</label>
+            <input type="email" autocapitalize="none" autocomplete="username" [(ngModel)]="email" name="email"
+                   placeholder="dig@eksempel.dk" />
           </div>
           <div class="field">
             <label>Adgangskode</label>
@@ -33,6 +33,12 @@ import { LogoMark } from '../shared/logo';
             {{ loading() ? 'Logger ind…' : 'Log ind' }}
           </button>
         </form>
+
+        <div class="login-links">
+          <a routerLink="/glemt-kode">Glemt adgangskode?</a>
+          <span aria-hidden="true">·</span>
+          <a routerLink="/opret">Opret ny konto</a>
+        </div>
       </div>
     </div>
   `,
@@ -43,6 +49,7 @@ import { LogoMark } from '../shared/logo';
     .login-brand app-logo { margin-bottom: .7rem; }
     .login-brand h1 { font-size: 1.35rem; margin: 0 0 .2rem; }
     .login-brand p { margin: 0; }
+    .login-links { margin-top: 1.1rem; text-align: center; font-size: .9rem; display: flex; gap: .6rem; justify-content: center; align-items: center; flex-wrap: wrap; }
   `]
 })
 export class LoginPage {

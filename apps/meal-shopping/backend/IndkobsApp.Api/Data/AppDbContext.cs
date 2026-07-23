@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Household> Households => Set<Household>();
+    public DbSet<User> Users => Set<User>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
@@ -39,6 +40,18 @@ public class AppDbContext : DbContext
             e.Property(x => x.Email).IsRequired().HasMaxLength(200);
             e.Property(x => x.PasswordHash).IsRequired();
             e.HasIndex(x => x.Email).IsUnique(); // ét login pr. email
+        });
+
+        b.Entity<User>(e =>
+        {
+            e.Property(x => x.Email).IsRequired().HasMaxLength(200);
+            e.Property(x => x.PasswordHash).IsRequired();
+            e.Property(x => x.DisplayName).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Email).IsUnique(); // email er unikt login på tværs af alle brugere
+            // Slettes husstanden, ryger dens brugere med (cascade). HouseholdEraser rydder
+            // også eksplicit op, så det virker på både relationelle providers og InMemory.
+            e.HasOne(x => x.Household).WithMany().HasForeignKey(x => x.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.HouseholdId);
         });
 
         b.Entity<Category>(e =>

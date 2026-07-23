@@ -170,6 +170,17 @@ public static class DbSeeder
         db.Households.Add(demo);
         await db.SaveChangesAsync(); // få demo.Id
 
+        // T2: en første individuel bruger for demo-husstanden (samme login).
+        // Identity-hashformatet er ens for Household/User, så hash'en genbruges direkte.
+        db.Users.Add(new User
+        {
+            HouseholdId = demo.Id,
+            Email = email,
+            PasswordHash = demo.PasswordHash,
+            DisplayName = "Demo",
+            EmailConfirmed = true
+        });
+
         // --- Kategorier (butiksrækkefølge) — demo-husstandens egne ---
         var grønt    = new Category { HouseholdId = demo.Id, Name = "Grønt", SortOrder = 10 };
         var mejeri   = new Category { HouseholdId = demo.Id, Name = "Mejeri", SortOrder = 20 };

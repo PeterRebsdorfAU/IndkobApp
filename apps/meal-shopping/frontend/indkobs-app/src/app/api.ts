@@ -5,7 +5,7 @@ import {
   Category, Ingredient, Recipe, RecipeUpsert, ItemGroup, ItemGroupUpsert,
   Week, WeekDetail, ShoppingList, Unit,
   CatalogRecipe, AdoptResult, PantryItem, ShareToken, StockCheckedResult,
-  HouseholdTask, TasksSummary, Store, Order
+  HouseholdTask, TasksSummary, Store, Order, InviteResult
 } from './models';
 import { environment } from '../environments/environment';
 
@@ -136,6 +136,10 @@ export class Api {
   }
   cancelOrder(id: number) { return this.http.delete(`${API}/orders/${id}`); }
   // (Butiks-siden bor nu i den separate apps/supermarket-app.)
+
+  // ----- Brugerkonti: invitér til husstanden (T2) -----
+  // Returnerer et link som en eksisterende bruger kan dele, så andre kan oprette sig i samme husstand.
+  createInvite(): Observable<InviteResult> { return this.http.post<InviteResult>(`${API}/auth/invite`, {}); }
 
   // ----- GDPR: data-eksport & -sletning -----
   // Henter hele husstandens data som JSON-objekt (Bearer-token sættes af interceptor).

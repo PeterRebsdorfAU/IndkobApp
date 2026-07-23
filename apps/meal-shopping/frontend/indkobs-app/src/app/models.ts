@@ -78,7 +78,12 @@ export interface ShoppingList {
 
 export const DAYS = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
 
-export interface AuthResult { token: string; expiresUtc: string; householdId: number; householdName: string; }
+export interface AuthResult {
+  token: string; expiresUtc: string; householdId: number; householdName: string;
+  // T2 (additive; null for ældre husstands-login uden individuel bruger):
+  refreshToken?: string | null; displayName?: string | null; userId?: number | null;
+}
+export interface InviteResult { inviteToken: string; inviteLink: string; }
 
 // ---------- Inspiration / katalog ----------
 export interface CatalogLine { name: string; quantity: number; unit: Unit; }
