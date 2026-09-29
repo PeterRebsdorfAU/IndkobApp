@@ -9,6 +9,7 @@ export const environment = {
   // Feature-flags: skjuler UI uden at slette koden. Sæt til true for at vise igen.
   features: {
     retailerOrders: false, // "Send til butik" + "Mine ordrer" på indkøbssiden (midlertidigt skjult)
-    supportContact: false  // "Kontakt support"-knap på FAQ/hjælp-siden (midlertidigt skjult)
+    supportContact: false, // "Kontakt support"-knap på FAQ/hjælp-siden (midlertidigt skjult)
+    homeTasks: false       // "Hjem"-fanen (husstandens opgaver/pligter) (skjult; kode + data bevares)
   }
 };
