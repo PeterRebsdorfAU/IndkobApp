@@ -5,6 +5,7 @@ import { TasksState } from './shared/tasks-state';
 import { LogoMark } from './shared/logo';
 import { ToastHost } from './shared/toast';
 import { hasSeenOnboarding } from './shared/onboarding-state';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -16,6 +17,9 @@ export class App implements OnInit {
   auth = inject(Auth);
   tasks = inject(TasksState);
   private router = inject(Router);
+
+  // "Hjem"-fanen (husstandens opgaver) kan slås fra via feature-flag — koden bevares.
+  homeTasks = environment.features.homeTasks;
 
   // Initialer til avataren i topbjælken (fx "Peters husstand" -> "PH").
   // Bruger brugerens visningsnavn hvis vi har det, ellers husstandsnavnet.
@@ -39,7 +43,7 @@ export class App implements OnInit {
   }
 
   ngOnInit() {
-    // Hent badge-tallet for Hjem-fanen (forfaldne pligter + åbne opgaver).
-    if (this.auth.isLoggedIn()) this.tasks.refresh();
+    // Hent badge-tallet for Hjem-fanen (forfaldne pligter + åbne opgaver) — kun når fanen er slået til.
+    if (this.homeTasks && this.auth.isLoggedIn()) this.tasks.refresh();
   }
 }
